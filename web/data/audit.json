@@ -1,0 +1,177 @@
+{
+ "rows": {
+  "patients": 900,
+  "medical_history": 2806,
+  "medications": 1677,
+  "labs": 61095,
+  "vitals_daily": 328500,
+  "wearable_daily": 328500,
+  "habits_weekly": 46800,
+  "symptoms": 14982,
+  "encounters": 4084,
+  "adherence": 16572,
+  "cycles": 3871
+ },
+ "window": [
+  "2025-09-01",
+  "2026-08-31"
+ ],
+ "issues": [
+  {
+   "issue": "date_format",
+   "detail": "Date: excel-number",
+   "patients": 344,
+   "total": 164497
+  },
+  {
+   "issue": "date_format",
+   "detail": "Week Start: excel-number",
+   "patients": 200,
+   "total": 10400
+  },
+  {
+   "issue": "date_format",
+   "detail": "Start Date: excel-number",
+   "patients": 195,
+   "total": 1826
+  },
+  {
+   "issue": "date_format",
+   "detail": "Month: excel-number",
+   "patients": 195,
+   "total": 3540
+  },
+  {
+   "issue": "date_format",
+   "detail": "End Date: excel-number",
+   "patients": 174,
+   "total": 233
+  },
+  {
+   "issue": "date_format",
+   "detail": "Week Start: text",
+   "patients": 56,
+   "total": 2912
+  },
+  {
+   "issue": "date_format",
+   "detail": "Date: text",
+   "patients": 56,
+   "total": 46341
+  },
+  {
+   "issue": "date_format",
+   "detail": "Start Date: text",
+   "patients": 49,
+   "total": 253
+  },
+  {
+   "issue": "date_format",
+   "detail": "Month: text",
+   "patients": 49,
+   "total": 1020
+  },
+  {
+   "issue": "missing_value",
+   "detail": "Systolic BP",
+   "patients": 900,
+   "total": 21452
+  },
+  {
+   "issue": "missing_value",
+   "detail": "Stress Score 1-10",
+   "patients": 900,
+   "total": 18710
+  },
+  {
+   "issue": "missing_value",
+   "detail": "Steps",
+   "patients": 900,
+   "total": 18922
+  },
+  {
+   "issue": "missing_value",
+   "detail": "Sleep Hours",
+   "patients": 900,
+   "total": 18769
+  },
+  {
+   "issue": "missing_value",
+   "detail": "Sedentary Hours",
+   "patients": 900,
+   "total": 18747
+  },
+  {
+   "issue": "missing_value",
+   "detail": "Resting HR",
+   "patients": 900,
+   "total": 33080
+  },
+  {
+   "issue": "missing_value",
+   "detail": "HRV ms",
+   "patients": 900,
+   "total": 18909
+  },
+  {
+   "issue": "missing_value",
+   "detail": "Diastolic BP",
+   "patients": 900,
+   "total": 21190
+  },
+  {
+   "issue": "missing_value",
+   "detail": "Calories kcal",
+   "patients": 900,
+   "total": 18998
+  },
+  {
+   "issue": "missing_value",
+   "detail": "Active Minutes",
+   "patients": 900,
+   "total": 19090
+  },
+  {
+   "issue": "missing_value",
+   "detail": "Weight kg",
+   "patients": 700,
+   "total": 18056
+  },
+  {
+   "issue": "missing_value",
+   "detail": "Temp C",
+   "patients": 700,
+   "total": 13087
+  },
+  {
+   "issue": "missing_value",
+   "detail": "SpO2 %",
+   "patients": 700,
+   "total": 11513
+  },
+  {
+   "issue": "missing_value",
+   "detail": "Respiratory Rate",
+   "patients": 700,
+   "total": 15139
+  },
+  {
+   "issue": "missing_value",
+   "detail": "BMI",
+   "patients": 644,
+   "total": 8407
+  },
+  {
+   "issue": "no_rows",
+   "detail": "no medication rows",
+   "patients": 123,
+   "total": 123
+  },
+  {
+   "issue": "unit_variant",
+   "detail": "10^9/L written without 'x'",
+   "patients": 200,
+   "total": 1274
+  }
+ ]
+}

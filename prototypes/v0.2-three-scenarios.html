@@ -1,0 +1,465 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>VitaLens Scenarios</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lexend:wght@400;500;600&family=Atkinson+Hyperlegible:wght@400;700&display=swap">
+<style>
+/* Layout: scenario picker on top, then one reading column per scenario:
+   insight → how the sources connect → year timeline → evidence → questions → shared framework */
+:root{
+  --bg:#F2F6F6; --card:#FFFFFF; --ink:#16282B; --muted:#56696D; --line:#D9E3E4;
+  --accent:#137B7A; --accent-soft:#DDF0EE;
+  --up:#B4502A; --up-soft:#FBE9E1; --ok:#2F7A4B; --ok-soft:#E2F2E7;
+  --s1:#6A4FB0; --s1-soft:#EEEAF8;   /* metabolic */
+  --s2:#2F64B0; --s2-soft:#E6EEF9;   /* cardio */
+  --s3:#B23F86; --s3-soft:#F8E8F2;   /* PCOS */
+  --src-clin:#6A4FB0; --src-dev:#137B7A; --src-note:#8A6A1F; --src-note-soft:#F6EFDC;
+  --head:"Lexend","Trebuchet MS",system-ui,sans-serif;
+  --body:"Atkinson Hyperlegible",system-ui,-apple-system,"Segoe UI",sans-serif;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0F1A1C; --card:#172427; --ink:#E4EEEF; --muted:#9AB0B3; --line:#2A3B3E;
+  --accent:#5CC4C0; --accent-soft:#173B3B; --up:#F0956E; --up-soft:#3E2419; --ok:#7CCB97; --ok-soft:#183324;
+  --s1:#B4A3F0; --s1-soft:#2A2445; --s2:#8FB4EE; --s2-soft:#1C2A40; --s3:#EE97C9; --s3-soft:#3D1F31;
+  --src-clin:#B4A3F0; --src-dev:#5CC4C0; --src-note:#E2C27A; --src-note-soft:#3A3120; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0F1A1C; --card:#172427; --ink:#E4EEEF; --muted:#9AB0B3; --line:#2A3B3E;
+  --accent:#5CC4C0; --accent-soft:#173B3B; --up:#F0956E; --up-soft:#3E2419; --ok:#7CCB97; --ok-soft:#183324;
+  --s1:#B4A3F0; --s1-soft:#2A2445; --s2:#8FB4EE; --s2-soft:#1C2A40; --s3:#EE97C9; --s3-soft:#3D1F31;
+  --src-clin:#B4A3F0; --src-dev:#5CC4C0; --src-note:#E2C27A; --src-note-soft:#3A3120; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:16px;line-height:1.55}
+.page{max-width:1080px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:20px 40px;display:flex;flex-direction:column;gap:18px}
+h1,h2,h3{font-family:var(--head);font-weight:600;margin:0;text-wrap:balance;letter-spacing:-.005em}
+h1{font-size:clamp(22px,4vw,28px);line-height:1.25}
+h2{font-size:19px}
+h3{font-size:15px}
+p{margin:0}
+button{font:inherit;color:inherit;cursor:pointer}
+button:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.muted{color:var(--muted)}
+.small{font-size:14px}
+.num{font-variant-numeric:tabular-nums}
+
+.top{display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between}
+.logo{font-family:var(--head);font-weight:600;font-size:21px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.logo b{color:var(--accent);font-weight:600}
+.badge{font-family:var(--body);font-size:12px;font-weight:700;color:var(--muted);border:1px solid var(--line);border-radius:999px;padding:2px 9px}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:10px;overflow:hidden;background:var(--card)}
+.seg button{border:0;background:transparent;padding:7px 14px;font-size:14px;font-weight:700;color:var(--muted)}
+.seg button[aria-pressed="true"]{background:var(--ink);color:var(--card)}
+
+.scen{display:grid;grid-template-columns:repeat(3,minmax(0,1fr)) minmax(0,.7fr);gap:10px}
+@media (max-width:820px){.scen{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.sc{border:2px solid var(--line);background:var(--card);border-radius:14px;padding:12px 14px;text-align:left;display:flex;flex-direction:column;gap:3px;min-width:0}
+.sc .n{font-family:var(--head);font-size:13px;font-weight:600;color:var(--c)}
+.sc .t{font-weight:700;font-size:15px;line-height:1.3}
+.sc .p{font-size:13px;color:var(--muted)}
+.sc[aria-pressed="true"]{border-color:var(--c);background:var(--cs)}
+.sc:hover{border-color:var(--c)}
+
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:20px;min-width:0}
+.insight{border:2px solid var(--c);display:flex;flex-direction:column;gap:12px}
+.insight .row{display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:space-between}
+.eyebrow{font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--c)}
+.pill{display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:700;border-radius:999px;padding:3px 11px;white-space:nowrap}
+.pill.high{background:var(--ok-soft);color:var(--ok)}
+.pill.moderate{background:var(--up-soft);color:var(--up)}
+.pill.none{background:var(--bg);color:var(--muted);border:1px solid var(--line)}
+.lead{font-size:18px;line-height:1.6;max-width:72ch}
+.disclaim{font-size:13px;color:var(--muted)}
+.dl{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:4px;font-size:15px}
+
+.flow{display:grid;grid-template-columns:minmax(0,1fr) 40px minmax(0,1fr) 40px minmax(0,.9fr);gap:0;align-items:stretch}
+@media (max-width:820px){.flow{grid-template-columns:minmax(0,1fr)}.flow .op{transform:rotate(90deg);height:34px}}
+.fbox{border-radius:14px;padding:14px;display:flex;flex-direction:column;gap:8px;min-width:0}
+.fbox.clin{background:var(--s1-soft)}
+.fbox.dev{background:var(--accent-soft)}
+.fbox.out{background:var(--c);color:var(--card)}
+.fbox h3{display:flex;align-items:center;gap:8px}
+.fbox ul{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:7px;font-size:14px}
+.fbox li .plain{display:block;color:var(--muted);font-size:13px;line-height:1.4}
+.fbox.out .plain{color:inherit;opacity:.85}
+.op{display:grid;place-items:center;font-family:var(--head);font-size:22px;color:var(--muted)}
+.dir{font-weight:700}
+.dir.up{color:var(--up)} .dir.down{color:var(--up)} .dir.flat{color:var(--muted)}
+.tag{display:inline-block;font-size:11px;font-weight:700;border-radius:6px;padding:1px 7px;white-space:nowrap;vertical-align:1px}
+.tag.clin{background:var(--s1-soft);color:var(--src-clin);border:1px solid var(--src-clin)}
+.tag.dev{background:var(--accent-soft);color:var(--src-dev);border:1px solid var(--src-dev)}
+.tag.note{background:var(--src-note-soft);color:var(--src-note);border:1px solid var(--src-note)}
+.match{font-size:11px;font-weight:700;color:var(--up)}
+
+.chart-wrap{position:relative}
+#chart svg{display:block;width:100%;height:auto}
+.key{display:flex;flex-wrap:wrap;gap:14px;font-size:13px;color:var(--muted);margin-top:8px}
+.key span{display:inline-flex;align-items:center;gap:6px}
+.key i{display:inline-block;width:16px;height:10px;border-radius:3px}
+
+.tbl{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:14px}
+th{font-size:12px;letter-spacing:.04em;text-transform:uppercase;color:var(--muted);text-align:left;font-weight:700;padding:0 10px 8px 0;border-bottom:1px solid var(--line);white-space:nowrap}
+td{padding:9px 10px 9px 0;border-bottom:1px solid var(--line);vertical-align:top}
+tr:last-child td{border-bottom:0}
+.ev{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:10px}
+.ev li{display:grid;grid-template-columns:136px minmax(0,1fr);gap:10px;align-items:baseline}
+.ev li .tag{justify-self:start}
+@media (max-width:480px){.ev li{grid-template-columns:minmax(0,1fr);gap:2px}}
+.two{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:18px}
+@media (max-width:820px){.two{grid-template-columns:minmax(0,1fr)}}
+.asks{list-style:none;margin:10px 0 0;padding:0;display:flex;flex-direction:column;gap:9px}
+.asks label{display:flex;gap:10px;align-items:flex-start;cursor:pointer}
+.asks input{width:20px;height:20px;margin:2px 0 0;accent-color:var(--accent);flex:none}
+.fw td:first-child{font-weight:700;white-space:nowrap}
+.notb{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+.notb span{font-size:13px;border:1px solid var(--line);border-radius:999px;padding:2px 10px;color:var(--muted)}
+.notb span::before{content:"✕ ";color:var(--up)}
+footer{font-size:13px;color:var(--muted);text-align:center}
+</style>
+</head>
+<body>
+
+<div class="page">
+  <div class="top">
+    <div class="logo"><span>Vita<b>Lens</b></span> <span class="badge">Prototype v0.2 · sample patients</span></div>
+    <div class="seg" role="group" aria-label="Who is reading">
+      <button type="button" id="v-pat" aria-pressed="true">Patient view</button>
+      <button type="button" id="v-doc" aria-pressed="false">Doctor view</button>
+    </div>
+  </div>
+
+  <div>
+    <h1>Three validation scenarios, one framework</h1>
+    <p class="muted" style="margin-top:4px">Each scenario combines a patient's clinical history with 12 months of ongoing data to find a pattern over time and explain it with evidence. Pick a scenario.</p>
+  </div>
+
+  <div class="scen" id="scen" role="group" aria-label="Scenario"></div>
+
+  <section class="card insight" id="insight"></section>
+
+  <section class="card">
+    <h2>How the sources connect</h2>
+    <p class="muted small" style="margin:4px 0 14px">Clinical history alone is a snapshot. Ongoing data alone is just numbers. VitaLens links them.</p>
+    <div class="flow" id="flow"></div>
+  </section>
+
+  <section class="card">
+    <div class="top"><h2>The year at a glance</h2><span class="muted small" id="chart-sub"></span></div>
+    <div class="chart-wrap" id="chart" style="margin-top:10px"></div>
+    <div class="key">
+      <span><i style="background:var(--accent-soft);border:1px solid var(--accent)"></i>Usual range (Oct–Dec 2025)</span>
+      <span><i style="background:var(--accent)"></i>Monthly average</span>
+      <span><i style="background:var(--up)"></i>Outside usual</span>
+      <span><i style="background:var(--src-clin)"></i>Clinical event</span>
+      <span><i style="background:var(--src-note)"></i>Patient note</span>
+    </div>
+  </section>
+
+  <div class="two">
+    <section class="card">
+      <h2 id="ev-t">Evidence behind this</h2>
+      <div id="evidence" style="margin-top:12px"></div>
+    </section>
+    <section class="card">
+      <h2 id="ask-t">Questions to ask your doctor</h2>
+      <ul class="asks" id="asks"></ul>
+    </section>
+  </div>
+
+  <section class="card">
+    <h2>One framework, three scenarios</h2>
+    <p class="muted small" style="margin:4px 0 12px">The detection code is shared. Each scenario is a small configuration, so a new health area can be added without new code.</p>
+    <div class="tbl"><table class="fw" id="fw"></table></div>
+    <div class="notb"><span>Not a diagnosis</span><span>Not a basic high/low alert</span><span>Not three separate disease models</span><span>Not a black-box score</span></div>
+  </section>
+
+  <footer>VitaLens prototype v0.2 · Team VitaLens, COMP 8967, Group 1 · for PranaChain · Patients and readings are made-up samples · Built with AI assistance</footer>
+</div>
+
+<script>
+(function(){
+/* ---------- calendar: Oct 2025 – Sep 2026 ---------- */
+const MON=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+const MONL=["January","February","March","April","May","June","July","August","September","October","November","December"];
+const MONTHS=Array.from({length:12},(_,i)=>({m:(9+i)%12,y:2025+((9+i)>=12?1:0)}));
+const mLabel=i=>`${MONL[MONTHS[i].m]} ${MONTHS[i].y}`;
+const START=Date.UTC(2025,9,1),DAY=86400000;
+const pos=iso=>{const [y,m,d]=iso.split("-").map(Number);const mi=(y-2025)*12+(m-1)-9;const n=new Date(Date.UTC(y,m,0)).getUTCDate();return mi+((d||1)-1)/n};
+const monthYear=iso=>{const [y,m]=iso.split("-").map(Number);return `${MONL[m-1]} ${y}`};
+const lv=h=>(h.vs||String(h.value))+(h.unit==="%"?"%":h.unit?" "+h.unit:"");
+const refU=h=>h.ref+(h.unit==="%"?"%":h.unit?" "+h.unit:"");
+const fmtDate=iso=>{const [y,m,d]=iso.split("-").map(Number);return d?`${d} ${MON[m-1]} ${y}`:`${MONL[m-1]} ${y}`};
+
+/* ---------- ongoing signals (shared by every scenario) ---------- */
+const SIG={
+  weight:{name:"Weight",unit:"kg",src:"Smart scale",dec:1,tol:2,noise:.35},
+  glucose:{name:"Morning blood sugar",unit:"mmol/L",src:"Home glucose meter",dec:1,tol:.4,noise:.15},
+  sleep:{name:"Sleep",unit:"h/night",src:"Wearable",dec:1,tol:.5,noise:.15},
+  steps:{name:"Daily steps",unit:"steps",src:"Wearable",dec:0,tol:.15,pct:true,noise:350},
+  hr:{name:"Resting heart rate",unit:"bpm",src:"Wearable",dec:0,tol:4,noise:1},
+  bp:{name:"Home blood pressure (top)",unit:"mmHg",src:"Home BP cuff",dec:0,tol:8,noise:2.5},
+  cycle:{name:"Cycle length",unit:"days",src:"Cycle tracker",dec:0,tol:7,noise:2}
+};
+
+/* ---------- scenario patterns = configuration, not code ---------- */
+const PATTERNS={
+  metabolic:{n:"01",title:"Metabolic health",sub:"Type 2 diabetes risk",c:"s1",
+    history:[{lab:"HbA1c",min:5.7},{lab:"Fasting glucose",min:5.6}],
+    signals:{weight:"up",glucose:"up",sleep:"down",steps:"down"},min:2,
+    note:"When weight, sleep, activity and blood sugar move together like this, it can be worth checking blood sugar again. Your doctor can decide what makes sense.",
+    review:"Review whether a repeat HbA1c is due.",
+    asks:["Should I repeat my blood sugar test (HbA1c)?","Could my sleep or activity be affecting my blood sugar?","What small changes would help me most?"]},
+  cardio:{n:"02",title:"Cardiovascular",sub:"Hypertension risk",c:"s2",
+    history:[{dx:"hypertension"},{lab:"Clinic blood pressure",min:130}],
+    signals:{bp:"up",hr:"up",steps:"down",weight:"up"},min:2,
+    note:"Your doctor can check whether your blood pressure medicine or daily routine needs a look.",
+    review:"Review medication adherence and the home BP log.",
+    asks:["Am I taking my blood pressure medicine the right way?","Do I need a refill or a different dose?","How often should I check my blood pressure at home?"]},
+  pcos:{n:"03",title:"PCOS",sub:"Women's health",c:"s3",
+    history:[{dx:"PCOS"}],
+    signals:{cycle:"up",weight:"up",sleep:"down",hr:"up"},min:2,
+    note:"Longer cycles together with weight and sleep changes are worth reviewing with your doctor alongside your PCOS care plan.",
+    review:"Review cycle pattern alongside the current PCOS care plan.",
+    asks:["Are my longer cycles linked to my weight or sleep changes?","Should my PCOS care plan be reviewed?","Could my new work schedule be affecting this?"]}
+};
+
+/* ---------- sample patients (made up) ---------- */
+const PATIENTS=[
+ {id:"metabolic",name:"Sarah",age:52,sex:"F",
+  record:[
+   {kind:"lab",name:"HbA1c",value:6.1,unit:"%",ref:"below 5.7",date:"2025-11-14",plain:"Average blood sugar over 2–3 months. 6.1% is a little above normal."},
+   {kind:"lab",name:"Fasting glucose",value:6.0,vs:"6.0",unit:"mmol/L",ref:"below 5.6",date:"2025-11-14",plain:"Blood sugar after not eating overnight. Slightly above normal."},
+   {kind:"lab",name:"LDL cholesterol",value:2.9,unit:"mmol/L",ref:"below 3.4",date:"2025-11-14",plain:"\"Bad\" cholesterol. Normal."},
+   {kind:"lab",name:"BMI",value:28.4,unit:"",ref:"18.5–24.9",date:"2025-11-14",plain:"Weight compared with height. Above the healthy range."},
+   {kind:"med",name:"No diabetes medicine",date:"2025-11",plain:"Lifestyle advice given; repeat HbA1c suggested in 12 months."}],
+  sig:{weight:{base:78,from:6,len:4,amt:4.6},glucose:{base:5.7,from:6,len:4,amt:.7,sparse:.25},sleep:{base:7.2,from:7,len:3,amt:-1.1},steps:{base:8200,from:6,len:3,amt:-2600},hr:{base:63}},
+  events:[{date:"2025-11-14",label:"HbA1c 6.1%",kind:"clin"}]},
+ {id:"cardio",name:"Raj",age:61,sex:"M",
+  record:[
+   {kind:"dx",code:"hypertension",name:"Stage 1 hypertension",plainName:"high blood pressure (stage 1 hypertension)",date:"2024-05",plain:"Blood pressure that is higher than it should be."},
+   {kind:"med",name:"Amlodipine 5 mg daily",date:"2024-06",plain:"A daily medicine that lowers blood pressure."},
+   {kind:"lab",name:"Clinic blood pressure",value:136,unit:"mmHg",ref:"below 130",date:"2025-11-03",plain:"Top number measured at the clinic. Above target."},
+   {kind:"lab",name:"LDL cholesterol",value:3.6,unit:"mmol/L",ref:"below 3.4",date:"2025-11-03",plain:"\"Bad\" cholesterol. A little high."},
+   {kind:"rx",name:"Last pharmacy refill",date:"2026-04-10",plain:"No refill of the blood pressure medicine since then."}],
+  sig:{bp:{base:127,from:7,len:2,amt:14},hr:{base:64,from:7,len:2,amt:7},steps:{base:7400,from:6,len:3,amt:-2100},weight:{base:88},sleep:{base:6.9}},
+  events:[{date:"2025-11-03",label:"Clinic BP 136",kind:"clin"},{date:"2026-04-10",label:"Last refill",kind:"clin"}]},
+ {id:"pcos",name:"Priya",age:29,sex:"F",
+  record:[
+   {kind:"dx",code:"PCOS",name:"Polycystic ovary syndrome (PCOS)",plainName:"PCOS (polycystic ovary syndrome)",date:"2023-11",plain:"A hormone condition that can cause irregular periods and weight changes."},
+   {kind:"med",name:"Metformin 500 mg twice daily",date:"2024-01",plain:"A medicine that helps the body use insulin better."},
+   {kind:"lab",name:"HOMA-IR",value:3.1,unit:"",ref:"below 2.5",date:"2025-07-03",plain:"How well the body responds to insulin. Higher means it works harder."},
+   {kind:"lab",name:"Testosterone",value:2.4,unit:"nmol/L",ref:"below 1.7",date:"2025-07-03",plain:"A hormone often higher in PCOS."},
+   {kind:"note",name:"Started night shifts",date:"2026-02-02",plain:"Told VitaLens about a new work schedule."}],
+  sig:{cycle:{base:33,from:5,len:4,amt:22},weight:{base:71,from:5,len:5,amt:3.8},sleep:{base:7.4,from:4,len:3,amt:-.9},hr:{base:66,from:5,len:4,amt:5},steps:{base:9000}},
+  events:[{date:"2026-02-02",label:"Night shifts",kind:"note"}]},
+ {id:"control",name:"Mei",age:44,sex:"F",control:true,
+  record:[
+   {kind:"lab",name:"HbA1c",value:5.3,unit:"%",ref:"below 5.7",date:"2025-10-20",plain:"Average blood sugar. Normal."},
+   {kind:"lab",name:"Clinic blood pressure",value:118,unit:"mmHg",ref:"below 130",date:"2025-10-20",plain:"Normal."}],
+  sig:{weight:{base:64},sleep:{base:7.5},steps:{base:9600},hr:{base:60},bp:{base:116}},
+  events:[{date:"2025-10-20",label:"Check-up",kind:"clin"}]}
+];
+
+/* ---------- data generation (seeded so it is the same every time) ---------- */
+function rng(seed){return()=>{seed|=0;seed=seed+0x6D2B79F5|0;let t=Math.imul(seed^seed>>>15,1|seed);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+function gauss(r){let u=0;while(!u)u=r();return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*r())}
+const ramp=(i,s)=>s.from==null?0:Math.max(0,Math.min(1,(i-s.from)/(s.len||3)))*(s.amt||0);
+function series(p,k,r){
+  const s=p.sig[k],sp=SIG[k];
+  if(k==="cycle"){ // build real cycles, then report the length of the cycle that started each month
+    const out=Array.from({length:12},()=>[]);let day=-r()*20;
+    while(day<365){const i=Math.floor(day/30.42),L=Math.round(s.base+ramp(Math.max(0,day/30.42),s)+sp.noise*gauss(r));
+      if(day>=0&&i<12)out[i].push(L);day+=L}
+    return out.map(a=>a.length?a.reduce((x,y)=>x+y,0)/a.length:null);
+  }
+  return MONTHS.map((_,i)=>{if(s.sparse&&r()<s.sparse)return null;return s.base+ramp(i,s)+sp.noise*gauss(r)});
+}
+/* ---------- personal baseline + sustained change ---------- */
+const mean=a=>{const v=a.filter(x=>x!=null);return v.length?v.reduce((x,y)=>x+y,0)/v.length:null};
+function analyse(p,idx){
+  const r=rng(idx*7919+101),out={};
+  for(const k of Object.keys(p.sig)){
+    const sp=SIG[k],vals=series(p,k,r);
+    const usual=mean(vals.slice(0,3)),recent=mean(vals.slice(9));
+    const tol=sp.pct?usual*sp.tol:sp.tol,diff=recent-usual,dir=Math.abs(diff)>=tol?(diff>0?"up":"down"):"flat";
+    let since=null;
+    if(dir!=="flat")for(let i=3;i<12;i++){const rest=vals.slice(i).filter(v=>v!=null);
+      if(!rest.length)break;const hits=rest.filter(v=>dir==="up"?v-usual>=tol:usual-v>=tol).length;
+      if(vals[i]!=null&&hits/rest.length>=.75){since=i;break}}
+    const cov=vals.slice(3).filter(v=>v!=null).length/9;
+    out[k]={vals,usual,recent,diff,tol,dir,since,cov,pct:diff/usual*100};
+  }
+  return out;
+}
+/* ---------- evidence builder: history link + ≥ min signals in the expected direction ---------- */
+function findHistory(p,rule){
+  return rule.map(h=>p.record.find(x=>h.lab?(x.kind==="lab"&&x.name===h.lab&&x.value>=h.min):(x.kind==="dx"&&x.code===h.dx))).filter(Boolean);
+}
+function buildInsight(p,d){
+  const results=[];
+  for(const [id,pat] of Object.entries(PATTERNS)){
+    const hist=findHistory(p,pat.history);
+    const matched=Object.entries(pat.signals).filter(([k,dir])=>d[k]&&d[k].dir===dir).map(([k])=>k);
+    results.push({id,pat,hist,matched,fired:hist.length>0&&matched.length>=pat.min});
+  }
+  const best=results.filter(x=>x.fired).sort((a,b)=>b.matched.length-a.matched.length)[0]||null;
+  if(!best)return{best:null,results};
+  const cov=mean(best.matched.map(k=>d[k].cov));
+  const level=best.matched.length>=3&&cov>=.7?"High":"Moderate";
+  const first=Math.min(...best.matched.map(k=>d[k].since).filter(x=>x!=null));
+  const extra=p.record.filter(x=>x.kind==="rx"||x.kind==="note");
+  return{best,results,level,cov,first,extra};
+}
+
+/* ---------- plain-language phrases (numbers always come from the evidence) ---------- */
+const f=(k,v)=>{const sp=SIG[k];return sp.pct?Math.round(Math.abs(v/(this||1))):(Math.abs(v)).toFixed(sp.dec)};
+const abs=(k,v)=>Math.abs(v).toFixed(SIG[k].dec);
+const PH={
+  weight:x=>`your weight went ${x.diff>0?"up":"down"} about ${abs("weight",x.diff)} kg`,
+  glucose:x=>`your morning blood sugar is about ${abs("glucose",x.diff)} mmol/L ${x.diff>0?"higher":"lower"}`,
+  sleep:x=>{const v=abs("sleep",x.diff);return `you are sleeping about ${v==="1.0"?"1 hour":v+" hours"} ${x.diff<0?"less":"more"} a night`},
+  steps:x=>`you are walking about ${Math.round(Math.abs(x.pct))}% ${x.diff<0?"less":"more"}`,
+  hr:x=>`your resting heart rate is about ${abs("hr",x.diff)} beats a minute ${x.diff>0?"higher":"lower"}`,
+  bp:x=>`your home blood pressure (top number) is about ${abs("bp",x.diff)} mmHg ${x.diff>0?"higher":"lower"}`,
+  cycle:x=>`your cycles have become about ${abs("cycle",x.diff)} days ${x.diff>0?"longer":"shorter"}`
+};
+const histPlain=h=>h.kind==="lab"?`your ${h.name==="HbA1c"?"HbA1c":h.name.toLowerCase()} result of ${lv(h)} in ${monthYear(h.date)}, which was above the target (${refU(h)})`
+  :`the ${h.plainName||h.name} in your record`;
+const join=a=>a.length<2?a.join(""):a.slice(0,-1).join(", ")+" and "+a[a.length-1];
+const show=(k,v)=>k==="steps"?Math.round(v).toLocaleString("en-US"):v.toFixed(SIG[k].dec);
+
+/* ---------- state ---------- */
+let cur=0,view="patient";
+const DATA=PATIENTS.map((p,i)=>analyse(p,i));
+const $=id=>document.getElementById(id);
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+
+function render(){
+  const p=PATIENTS[cur],d=DATA[cur],ins=buildInsight(p,d),pat=ins.best&&ins.best.pat;
+  const c=p.control?"accent":PATTERNS[p.id].c;
+  document.documentElement.style.setProperty("--c",`var(--${c==="accent"?"accent":c})`);
+  $("v-pat").setAttribute("aria-pressed",view==="patient");$("v-doc").setAttribute("aria-pressed",view==="doctor");
+
+  $("scen").innerHTML=PATIENTS.map((x,i)=>{const P=PATTERNS[x.id],cc=x.control?"accent":P.c;
+    return `<button type="button" class="sc" data-i="${i}" aria-pressed="${i===cur}" style="--c:var(--${cc});--cs:var(--${cc==="accent"?"accent":cc}-soft)">
+      <span class="n">${x.control?"Control":P.n}</span>
+      <span class="t">${x.control?"Stable patient":P.title+" · "+P.sub}</span>
+      <span class="p">${x.name}, ${x.age}</span></button>`}).join("");
+
+  renderInsight(p,d,ins);renderFlow(p,d,ins);drawChart(p,d,ins);renderEvidence(p,d,ins);renderAsks(p,ins);renderFramework(ins);
+}
+
+function renderInsight(p,d,ins){
+  const el=$("insight");
+  if(!ins.best){
+    el.innerHTML=`<div class="row"><span class="eyebrow">No combined change found</span><span class="pill none">Nothing flagged</span></div>
+      <h2>${p.name}'s readings stayed close to her usual this year</h2>
+      <p class="lead">VitaLens checked all three scenario patterns. None matched, so nothing is raised. This shows the system does not create false alarms for stable patients.</p>
+      <p class="disclaim">VitaLens does not diagnose. It compares a person with their own usual levels.</p>`;return}
+  const {best,level,first}=ins,pat=best.pat;
+  const parts=best.matched.map(k=>PH[k](d[k]));
+  const histTxt=join(best.hist.map(histPlain));
+  const extra=ins.extra.map(x=>x.kind==="rx"?` There has also been no blood pressure medicine refill since ${fmtDate(x.date)}.`:` You also told us you ${x.name.toLowerCase()} in ${monthYear(x.date)}.`).join("");
+  const sources=new Set(["Clinical record",...best.matched.map(k=>SIG[k].src),...ins.extra.filter(x=>x.kind==="note").map(()=>"Your note")]);
+  const lead=view==="patient"
+    ?`<p class="lead">Since ${mLabel(first)}, ${join(parts)}, compared with your usual from October to December 2025. This lines up with ${histTxt}.${extra} ${pat.note}</p>`
+    :`<ul class="dl">${best.matched.map(k=>{const x=d[k],s=SIG[k];return `<li><b>${s.name}</b>: ${show(k,x.usual)} → ${show(k,x.recent)} ${s.unit} (${x.diff>0?"+":""}${s.pct?Math.round(x.pct)+"%":x.diff.toFixed(s.dec)+" "+s.unit}), sustained since ${mLabel(x.since)}</li>`}).join("")}
+       <li><b>Linked history</b>: ${best.hist.map(h=>h.kind==="lab"?`${h.name} ${lv(h)} (${fmtDate(h.date)}, ref ${refU(h)})`:`${h.name} (since ${fmtDate(h.date)})`).join("; ")}</li>
+       ${ins.extra.map(x=>`<li><b>${x.kind==="rx"?"Pharmacy":"Patient note"}</b>: ${x.name} (${fmtDate(x.date)})</li>`).join("")}
+       <li><b>For review</b>: ${pat.review}</li></ul>`;
+  el.innerHTML=`<div class="row"><span class="eyebrow">${pat.n} · ${pat.title} · ${p.name}, ${p.age}</span><span class="pill ${level.toLowerCase()}">${level} confidence</span></div>
+    <h2>${view==="patient"?`${best.matched.length} of your readings changed together, and they connect to your health history`:`${pat.title} pattern: ${best.matched.length} of ${Object.keys(pat.signals).length} signals changed in the expected direction`}</h2>
+    ${lead}
+    <p class="disclaim">Based on ${sources.size} sources: ${join([...sources])}. Confidence is ${level.toLowerCase()} because ${best.matched.length} signals agree and ${Math.round(ins.cov*100)}% of recent data is present. This is not a diagnosis.</p>`;
+}
+
+function renderFlow(p,d,ins){
+  const pat=ins.best?ins.best.pat:null,P=PATTERNS[p.id];
+  const histIds=new Set((ins.best?ins.best.hist:[]).map(h=>h.name));
+  const clin=p.record.map(r=>`<li>${r.kind==="lab"?`<b>${r.name}${r.value!=null?" "+lv(r):""}</b>`:`<b>${r.name}</b>`} <span class="muted small">· ${fmtDate(r.date)}</span> ${histIds.has(r.name)?'<span class="match">← linked</span>':""}<span class="plain">${r.plain}</span></li>`).join("");
+  const keys=Object.keys(p.sig);
+  const dev=keys.map(k=>{const x=d[k],s=SIG[k],m=ins.best&&ins.best.matched.includes(k);
+    const arrow=x.dir==="up"?"↑":x.dir==="down"?"↓":"→";
+    return `<li><span class="dir ${x.dir}">${arrow}</span> <b>${s.name}</b> ${m?'<span class="match">← linked</span>':""}<span class="plain">${s.src} · ${x.dir==="flat"?"close to usual":(x.diff>0?"+":"")+(s.pct?Math.round(x.pct)+"%":x.diff.toFixed(s.dec)+" "+s.unit)+" vs usual"}</span></li>`}).join("");
+  const out=ins.best
+    ?`<ul><li><b>${ins.best.pat.title} pattern</b><span class="plain">${ins.best.matched.length} ongoing signals + ${ins.best.hist.length} history item${ins.best.hist.length>1?"s":""} point the same way</span></li><li><b>${ins.level} confidence</b><span class="plain">explained with evidence below</span></li></ul>`
+    :`<ul><li><b>No pattern</b><span class="plain">All three patterns checked; nothing matched</span></li></ul>`;
+  $("flow").innerHTML=`<div class="fbox clin"><h3><span class="tag clin">Clinical record</span> History</h3><ul>${clin}</ul></div>
+    <div class="op" aria-hidden="true">+</div>
+    <div class="fbox dev"><h3><span class="tag dev">Devices</span> Ongoing, 12 months</h3><ul>${dev}</ul></div>
+    <div class="op" aria-hidden="true">→</div>
+    <div class="fbox out"><h3>Insight</h3>${out}</div>`;
+}
+
+function drawChart(p,d,ins){
+  const keys=Object.keys(p.sig).sort((a,b)=>{const m=ins.best?ins.best.matched:[];return (m.includes(b)?1:0)-(m.includes(a)?1:0)});
+  $("chart-sub").textContent=`${p.name} · October 2025 to September 2026`;
+  const el=$("chart"),W=Math.max(320,el.clientWidth||900),narrow=W<560;
+  const ml=narrow?8:190,mr=12,top=34,rowH=narrow?78:62,gap=narrow?0:10,H=top+keys.length*(rowH+gap)+24,pw=W-ml-mr;
+  const X=i=>ml+(i+.5)*pw/12,XP=v=>ml+v*pw/12;
+  let s=`<svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" role="img" aria-label="Monthly readings for ${p.name}">`;
+  // events across all rows
+  p.events.forEach((e,j)=>{const x=XP(pos(e.date));if(x<ml||x>W-mr)return;const col=e.kind==="note"?"var(--src-note)":"var(--src-clin)";
+    const right=x>W*.72;
+    s+=`<line x1="${x}" x2="${x}" y1="${top-8}" y2="${H-22}" stroke="${col}" stroke-width="1.5" stroke-dasharray="4 4"/>
+      <text x="${right?x-5:x+5}" y="${top-14+(j%2)*0}" text-anchor="${right?"end":"start"}" font-size="12" font-weight="700" fill="${col}" font-family="var(--body)">${esc(e.label)}</text>`});
+  keys.forEach((k,r)=>{
+    const x=d[k],sp=SIG[k],y0=top+r*(rowH+gap),lab=narrow?18:0,ph=rowH-lab-6,py=y0+lab;
+    const vals=x.vals.filter(v=>v!=null);let lo=Math.min(...vals,x.usual-x.tol),hi=Math.max(...vals,x.usual+x.tol);const pad=(hi-lo)*.12;lo-=pad;hi+=pad;
+    const Y=v=>py+(1-(v-lo)/(hi-lo))*ph;
+    const linked=ins.best&&ins.best.matched.includes(k);
+    const name=`${sp.name}`,srcl=`${sp.src}`;
+    if(narrow)s+=`<text x="${ml}" y="${y0+13}" font-size="13" font-weight="700" fill="var(--ink)" font-family="var(--body)">${name} <tspan fill="var(--muted)" font-weight="400">· ${srcl}</tspan></text>`;
+    else s+=`<text x="${ml-14}" y="${py+ph/2-3}" text-anchor="end" font-size="13" font-weight="700" fill="${linked?"var(--ink)":"var(--muted)"}" font-family="var(--body)">${name}</text><text x="${ml-14}" y="${py+ph/2+13}" text-anchor="end" font-size="11.5" fill="var(--muted)" font-family="var(--body)">${srcl}</text>`;
+    s+=`<rect x="${ml}" y="${Y(x.usual+x.tol)}" width="${pw}" height="${Y(x.usual-x.tol)-Y(x.usual+x.tol)}" fill="var(--accent-soft)" stroke="var(--accent)" stroke-opacity=".3"/>`;
+    let path="",on=false;x.vals.forEach((v,i)=>{if(v==null){on=false;return}path+=(on?"L":"M")+X(i).toFixed(1)+" "+Y(v).toFixed(1);on=true});
+    s+=`<path d="${path}" fill="none" stroke="var(--accent)" stroke-width="2.4" stroke-linejoin="round"/>`;
+    x.vals.forEach((v,i)=>{if(v==null){s+=`<text x="${X(i)}" y="${py+ph/2+4}" text-anchor="middle" font-size="11" fill="var(--muted)" font-family="var(--body)">${k==="cycle"?"no start":"–"}</text>`;return}
+      const out=Math.abs(v-x.usual)>=x.tol;s+=`<circle cx="${X(i)}" cy="${Y(v)}" r="${out?4.6:3.4}" fill="${out?"var(--up)":"var(--accent)"}" stroke="var(--card)" stroke-width="1.5"><title>${mLabel(i)}: ${show(k,v)} ${sp.unit}</title></circle>`});
+  });
+  MONTHS.forEach((mo,i)=>{if(narrow&&i%2)return;s+=`<text x="${X(i)}" y="${H-6}" text-anchor="middle" font-size="12" fill="var(--muted)" font-family="var(--body)">${MON[mo.m]}${mo.m===0?" ’26":""}</text>`});
+  el.innerHTML=s+"</svg>";
+}
+
+function renderEvidence(p,d,ins){
+  $("ev-t").textContent=view==="patient"?"Evidence behind this":"Evidence object";
+  if(!ins.best){$("evidence").innerHTML=`<p class="muted">No evidence to show. Every ongoing signal stayed within ${p.name}'s usual range, and no scenario pattern matched.</p>`;return}
+  const b=ins.best;
+  if(view==="patient"){
+    $("evidence").innerHTML=`<ul class="ev">${b.hist.map(h=>`<li><span class="tag clin">Clinical record</span><span>${h.kind==="lab"?`${h.name} ${lv(h)} on ${fmtDate(h.date)}`:`${h.name}, since ${fmtDate(h.date)}`}</span></li>`).join("")}
+      ${b.matched.map(k=>`<li><span class="tag dev">${SIG[k].src}</span><span>${PH[k](d[k]).replace(/^your /,"Your ").replace(/^you /,"You ")} since ${mLabel(d[k].since)}</span></li>`).join("")}
+      ${ins.extra.map(x=>`<li><span class="tag ${x.kind==="note"?"note":"clin"}">${x.kind==="note"?"Your note":"Pharmacy"}</span><span>${x.name}, ${fmtDate(x.date)}</span></li>`).join("")}</ul>`;
+  }else{
+    $("evidence").innerHTML=`<div class="tbl"><table><thead><tr><th>Source</th><th>Signal</th><th>Usual</th><th>Recent</th><th>Change</th><th>Since</th><th>Data</th></tr></thead><tbody>
+      ${b.matched.map(k=>{const x=d[k],s=SIG[k];return `<tr><td>${s.src}</td><td>${s.name}</td><td class="num">${show(k,x.usual)}</td><td class="num">${show(k,x.recent)}</td><td class="num">${x.diff>0?"+":""}${s.pct?Math.round(x.pct)+"%":x.diff.toFixed(s.dec)}</td><td class="num">${MON[MONTHS[x.since].m]} ${MONTHS[x.since].y}</td><td class="num">${Math.round(x.cov*100)}%</td></tr>`}).join("")}
+      ${b.hist.map(h=>`<tr><td>Clinical record</td><td>${h.name}</td><td colspan="3">${h.kind==="lab"?`${lv(h)} (ref ${refU(h)})`:"Diagnosis on record"}</td><td class="num">${fmtDate(h.date)}</td><td></td></tr>`).join("")}
+      </tbody></table></div><p class="muted small" style="margin-top:8px">Rule: ${b.id} · needs a history link and ≥ ${b.pat.min} signals in the expected direction · matched ${b.matched.length}/${Object.keys(b.pat.signals).length}</p>`;
+  }
+}
+function renderAsks(p,ins){
+  $("ask-t").textContent=view==="patient"?"Questions to ask your doctor":"Points for review";
+  const list=!ins.best?["Is there anything I should keep an eye on?","When should I have my next check-up?"]
+    :view==="patient"?ins.best.pat.asks:[ins.best.pat.review,"Check data gaps before acting on the trend.","Discuss findings with the patient; VitaLens does not diagnose."];
+  $("asks").innerHTML=list.map((a,i)=>`<li><label for="q${cur}-${i}"><input type="checkbox" id="q${cur}-${i}"><span>${a}</span></label></li>`).join("");
+}
+function renderFramework(ins){
+  const rows=Object.entries(PATTERNS).map(([id,P])=>{const r=ins.results.find(x=>x.id===id);
+    const hist=P.history.map(h=>h.lab?`${h.lab} ≥ ${h.min}`:`${h.dx==="PCOS"?"PCOS":h.dx.charAt(0).toUpperCase()+h.dx.slice(1)} diagnosis`).join(" or ");
+    const sig=Object.entries(P.signals).map(([k,dir])=>`${SIG[k].name} ${dir==="up"?"↑":"↓"}`).join(", ");
+    const res=r.fired?`<span class="pill moderate">Matched (${r.matched.length})</span>`:`<span class="pill none">${r.hist.length?"History only":"No match"}</span>`;
+    return `<tr><td style="color:var(--${P.c})">${P.n} ${P.title}</td><td>${hist}</td><td>${sig}</td><td>≥ ${P.min} signals</td><td>${res}</td></tr>`}).join("");
+  $("fw").innerHTML=`<thead><tr><th>Scenario</th><th>Clinical context it looks for</th><th>Ongoing signals it watches</th><th>Rule</th><th>This patient</th></tr></thead><tbody>${rows}</tbody>`;
+}
+
+document.addEventListener("click",e=>{const b=e.target.closest("button");if(!b)return;
+  if(b.dataset.i!=null){cur=+b.dataset.i;render()}
+  else if(b.id==="v-pat"||b.id==="v-doc"){view=b.id==="v-pat"?"patient":"doctor";render()}});
+let rt;window.addEventListener("resize",()=>{clearTimeout(rt);rt=setTimeout(()=>{const p=PATIENTS[cur];drawChart(p,DATA[cur],buildInsight(p,DATA[cur]))},120)});
+render();
+})();
+</script>
+</body>
+</html>

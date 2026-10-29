@@ -1,0 +1,689 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>VitaLens Body</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lexend:wght@400;500;600&family=Atkinson+Hyperlegible:wght@400;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: a dark clinical "scanner" — 3D body on the left as the navigator, reading panel on the right.
+   Deliberately single (dark) theme: the holographic body needs a dark field. */
+:root{
+  --bg:#0A1315; --panel:#101C1F; --panel2:#152427; --line:#21363A; --ink:#E3EEEF; --muted:#8EA5A9;
+  --accent:#4FD1C5; --accent-soft:#123534; --up:#F29A6B; --up-soft:#3A2418; --ok:#7BD39A; --ok-soft:#163222;
+  --vein:#6F9BEA; --artery:#EF5A5A; --hor:#E58AC0; --met:#E8B85A; --brain:#C9A3F2;
+  --head:"Lexend","Trebuchet MS",system-ui,sans-serif;
+  --body:"Atkinson Hyperlegible",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html,body{background:var(--bg);color:var(--ink)}
+body{font-family:var(--body);font-size:15.5px;line-height:1.55}
+.page{max-width:1280px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:18px 36px;display:flex;flex-direction:column;gap:14px}
+h1,h2,h3{font-family:var(--head);font-weight:600;margin:0;text-wrap:balance;letter-spacing:-.005em}
+h1{font-size:clamp(20px,3.4vw,26px)}
+h2{font-size:19px;line-height:1.3}
+h3{font-size:15px}
+p{margin:0}
+button{font:inherit;color:inherit;cursor:pointer}
+button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.muted{color:var(--muted)}
+.small{font-size:13.5px}
+.mono{font-family:var(--mono);font-variant-numeric:tabular-nums}
+
+.top{display:flex;flex-wrap:wrap;gap:10px 18px;align-items:center;justify-content:space-between}
+.logo{font-family:var(--head);font-weight:600;font-size:21px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.logo b{color:var(--accent);font-weight:600}
+.badge{font-family:var(--mono);font-size:11px;color:var(--muted);border:1px solid var(--line);border-radius:999px;padding:2px 9px}
+.pts{display:flex;flex-wrap:wrap;gap:8px}
+.pt{border:1px solid var(--line);background:var(--panel);border-radius:12px;padding:7px 12px;text-align:left;display:flex;flex-direction:column;line-height:1.25;min-width:0}
+.pt small{font-family:var(--mono);font-size:10.5px;color:var(--muted);letter-spacing:.04em}
+.pt span{font-weight:700;font-size:14px}
+.pt[aria-pressed="true"]{border-color:var(--accent);background:var(--accent-soft)}
+
+.main{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,1fr);gap:16px;align-items:start}
+@media (max-width:900px){.main{grid-template-columns:minmax(0,1fr)}}
+.stage{position:sticky;top:max(12px,env(safe-area-inset-top,0px));background:radial-gradient(120% 90% at 50% 35%,#13292C 0%,#0A1315 70%);border:1px solid var(--line);border-radius:18px;overflow:hidden;min-width:0}
+@media (max-width:900px){.stage{position:relative;top:0}}
+#gl{position:relative;height:min(78vh,700px);min-height:420px;touch-action:none}
+@media (max-width:900px){#gl{height:440px;min-height:0}}
+#gl canvas{display:block;width:100%;height:100%}
+.hud{position:absolute;left:14px;top:12px;right:14px;display:flex;justify-content:space-between;gap:8px;pointer-events:none}
+.hud .hint{font-family:var(--mono);font-size:11px;color:var(--muted);background:rgba(10,19,21,.6);border:1px solid var(--line);border-radius:8px;padding:4px 8px}
+.hud button{pointer-events:auto;border:1px solid var(--line);background:rgba(10,19,21,.75);border-radius:8px;padding:4px 10px;font-size:12.5px}
+.tip{position:absolute;pointer-events:none;background:rgba(10,19,21,.92);border:1px solid var(--line);border-radius:8px;padding:5px 9px;font-size:12.5px;white-space:nowrap;transform:translate(12px,-50%)}
+.tip i{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px;vertical-align:1px}
+.sysbar{display:flex;flex-wrap:wrap;gap:6px;padding:10px 12px;border-top:1px solid var(--line);background:var(--panel)}
+.chip{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);background:var(--panel2);border-radius:999px;padding:4px 11px;font-size:13px}
+.chip[aria-pressed="true"]{border-color:var(--accent);color:var(--accent)}
+.dot{width:8px;height:8px;border-radius:50%;flex:none}
+.dot.change{background:var(--up);box-shadow:0 0 0 3px var(--up-soft)}
+.dot.ok{background:var(--ok)}
+.dot.nodata{background:transparent;border:1.5px solid var(--muted)}
+.fallback{position:absolute;inset:0;display:grid;place-items:center;text-align:center;padding:24px;color:var(--muted)}
+
+.panel{display:flex;flex-direction:column;gap:14px;min-width:0}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:18px;min-width:0}
+.eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--accent)}
+.pill{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;font-weight:700;border-radius:999px;padding:3px 10px;white-space:nowrap}
+.pill.change{background:var(--up-soft);color:var(--up)}
+.pill.ok{background:var(--ok-soft);color:var(--ok)}
+.pill.nodata{border:1px solid var(--line);color:var(--muted)}
+.pill.high{background:var(--ok-soft);color:var(--ok)}
+.row{display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:space-between}
+.lead{font-size:16.5px;line-height:1.65;margin-top:10px;max-width:70ch}
+.disc{font-size:12.5px;color:var(--muted);margin-top:10px}
+.back{border:0;background:transparent;color:var(--accent);padding:0;font-size:14px;font-weight:700}
+
+.syslist{display:flex;flex-direction:column;gap:6px;margin-top:12px}
+.sysrow{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:10px;align-items:center;border:1px solid var(--line);background:var(--panel2);border-radius:12px;padding:9px 12px;text-align:left}
+.sysrow:hover{border-color:var(--accent)}
+.sysrow b{display:block;font-size:14.5px}
+.sysrow span.s{display:block;font-size:12.5px;color:var(--muted)}
+.sysrow .go{color:var(--muted)}
+
+#detail{position:relative;height:230px;border-radius:12px;background:radial-gradient(90% 90% at 50% 45%,#16302F 0%,#0C1719 75%);border:1px solid var(--line);overflow:hidden;margin-top:12px;touch-action:none}
+#detail canvas{display:block;width:100%;height:100%}
+#detail .cap{position:absolute;left:10px;bottom:8px;font-family:var(--mono);font-size:11px;color:var(--muted)}
+#detail .read{position:absolute;right:10px;top:8px;text-align:right;font-family:var(--mono);font-size:12px;line-height:1.5}
+
+.tiles{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:12px}
+@media (max-width:480px){.tiles{grid-template-columns:minmax(0,1fr)}}
+.tile{border:1px solid var(--line);background:var(--panel2);border-radius:12px;padding:11px 12px;display:flex;flex-direction:column;gap:3px;min-width:0}
+.tile .n{font-size:12.5px;color:var(--muted);font-weight:700;display:flex;justify-content:space-between;gap:6px}
+.tile .v{font-family:var(--mono);font-size:22px;font-weight:500;line-height:1.2}
+.tile .v small{font-family:var(--body);font-size:12px;color:var(--muted);font-weight:400}
+.tile .u{font-size:12px;color:var(--muted)}
+.tile .ex{font-size:12.5px;color:var(--muted);line-height:1.45}
+.tile svg{width:100%;height:34px;display:block;margin-top:2px}
+.tile.bad{border-color:var(--up)}
+.q{border:1px solid var(--line);background:transparent;border-radius:50%;width:20px;height:20px;font-size:11px;line-height:1;color:var(--muted);flex:none}
+
+.rel{border:1px solid var(--line);background:var(--panel2);border-radius:12px;padding:12px;margin-top:10px}
+.rel h3{display:flex;gap:8px;align-items:center}
+.rel h3 .tag{font-family:var(--mono);font-size:10px;letter-spacing:.06em;color:var(--accent);border:1px solid var(--accent);border-radius:5px;padding:1px 5px}
+.rel p{font-size:14.5px;margin-top:6px}
+.rel .st{font-family:var(--mono);font-size:11px;color:var(--muted);margin-top:4px}
+.rel svg{width:100%;height:auto;display:block;margin-top:8px}
+.rec{list-style:none;margin:10px 0 0;padding:0;display:flex;flex-direction:column;gap:8px}
+.rec li{font-size:14px}
+.rec li .p{display:block;font-size:12.5px;color:var(--muted)}
+.flag{font-family:var(--mono);font-size:10.5px;color:var(--up);margin-left:4px}
+table{width:100%;border-collapse:collapse;font-size:13px;margin-top:10px}
+th{font-family:var(--mono);font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);text-align:left;font-weight:500;padding:0 8px 6px 0;border-bottom:1px solid var(--line)}
+td{padding:7px 8px 7px 0;border-bottom:1px solid var(--line);vertical-align:top}
+tr:last-child td{border-bottom:0}
+.tbl{overflow-x:auto}
+footer{font-size:12.5px;color:var(--muted);text-align:center}
+@media (prefers-reduced-motion:reduce){*{animation:none!important}}
+</style>
+</head>
+<body>
+
+<div class="page">
+  <div class="top">
+    <div class="logo"><span>Vita<b>Lens</b></span><span class="badge">PROTOTYPE v0.3 · SAMPLE PATIENTS</span></div>
+    <div class="pts" id="pts" role="group" aria-label="Choose a patient"></div>
+  </div>
+  <h1>Explore the body: every system, linked over 12 months</h1>
+
+  <div class="main">
+    <div class="stage">
+      <div id="gl">
+        <div class="hud"><span class="hint" id="hint">Drag to turn · pinch to zoom · tap a glowing part</span><button type="button" id="reset">Whole body</button></div>
+        <div class="tip" id="tip" hidden></div>
+      </div>
+      <div class="sysbar" id="sysbar" role="group" aria-label="Body systems"></div>
+    </div>
+    <div class="panel" id="panel"></div>
+  </div>
+  <footer>VitaLens prototype v0.3 · Team VitaLens, COMP 8967, Group 1 · for PranaChain · Patients and readings are made-up samples generated in the browser · Built with AI assistance · Not a diagnosis</footer>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+<script>
+/* VitaLens data + analysis layer: daily sample data, advanced metrics, relationships, scenario patterns */
+(function(G){
+const N=365, START=Date.UTC(2025,9,1), DAY=86400000;
+const MON=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+const MONL=["January","February","March","April","May","June","July","August","September","October","November","December"];
+const MONTHS=Array.from({length:12},(_,i)=>({m:(9+i)%12,y:2025+((9+i)>=12?1:0)}));
+const monthOf=d=>{const t=new Date(START+d*DAY);return (t.getUTCFullYear()-2025)*12+t.getUTCMonth()-9};
+const dayOfISO=iso=>{const [y,m,dd]=iso.split("-").map(Number);return Math.round((Date.UTC(y,m-1,dd||1)-START)/DAY)};
+const mLabel=i=>`${MONL[MONTHS[i].m]} ${MONTHS[i].y}`;
+const fmtDate=iso=>{const [y,m,d]=iso.split("-").map(Number);return d?`${d} ${MON[m-1]} ${y}`:`${MONL[m-1]} ${y}`};
+
+function rng(seed){return()=>{seed|=0;seed=seed+0x6D2B79F5|0;let t=Math.imul(seed^seed>>>15,1|seed);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+function gauss(r){let u=0;while(!u)u=r();return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*r())}
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+const mean=a=>{const v=a.filter(x=>x!=null&&!isNaN(x));return v.length?v.reduce((s,x)=>s+x,0)/v.length:null};
+const sd=a=>{const v=a.filter(x=>x!=null);const m=mean(v);return v.length>1?Math.sqrt(v.reduce((s,x)=>s+(x-m)**2,0)/(v.length-1)):null};
+function monthly(arr,fn=mean){const b=Array.from({length:12},()=>[]);arr.forEach((v,d)=>{const i=monthOf(d);if(i>=0&&i<12&&v!=null)b[i].push(v)});return b.map(x=>x.length?fn(x):null)}
+function pearson(xs,ys){const n=xs.length,mx=mean(xs),my=mean(ys);let sxy=0,sxx=0,syy=0;for(let i=0;i<n;i++){const a=xs[i]-mx,b=ys[i]-my;sxy+=a*b;sxx+=a*a;syy+=b*b}
+  return{r:sxy/Math.sqrt(sxx*syy),slope:sxy/sxx,icpt:my-sxy/sxx*mx,n}}
+const ramp=(d,c)=>c?clamp((d/30.42-c[0])/c[1],0,1)*c[2]:0;
+
+/* ---------------- sample patients (made up) ---------------- */
+const PATIENTS=[
+ {id:"metabolic",name:"Sarah",age:52,sex:"F",scenario:"metabolic",
+  base:{sleep:7.2,steps:8200,rhr:63,hrv:42,weight:78},
+  drift:{weight:[6,4,4.6],sleep:[7,3,-1.1],steps:[6,3,-2600],hrv:[6,4,-6]},
+  glucose:{base:5.6,drift:[6,4,.6],meal:1.8,mealDrift:[6,4,1.0]},
+  record:[
+   {sys:"metabolic",kind:"lab",name:"HbA1c",v:"6.1%",ref:"below 5.7%",date:"2025-11-14",flag:true,plain:"Average blood sugar over 2–3 months. A little above normal."},
+   {sys:"metabolic",kind:"lab",name:"Fasting glucose",v:"6.0 mmol/L",ref:"below 5.6",date:"2025-11-14",flag:true,plain:"Blood sugar after not eating overnight."},
+   {sys:"metabolic",kind:"lab",name:"Triglycerides",v:"1.9 mmol/L",ref:"below 1.7",date:"2025-11-14",flag:true,plain:"A type of fat in the blood."},
+   {sys:"vessels",kind:"lab",name:"HDL cholesterol",v:"1.1 mmol/L",ref:"above 1.3",date:"2025-11-14",flag:true,plain:"\"Good\" cholesterol. A little low."},
+   {sys:"body",kind:"lab",name:"BMI",v:"28.4",ref:"18.5–24.9",date:"2025-11-14",flag:true,plain:"Weight compared with height."}],
+  labs:{tg:1.9,fpg:6.0},events:[{date:"2025-11-14",label:"HbA1c 6.1%"}]},
+ {id:"cardio",name:"Raj",age:61,sex:"M",scenario:"cardio",
+  base:{sleep:6.9,steps:7400,rhr:64,hrv:35,weight:88},
+  drift:{rhr:[7,2,7],hrv:[7,3,-8],steps:[6,3,-2100]},
+  bp:{base:126,drift:[7,2,5],refillDay:dayOfISO("2026-04-10"),missBefore:.05,missAfter:.35},
+  record:[
+   {sys:"vessels",kind:"dx",code:"hypertension",name:"Stage 1 hypertension",date:"2024-05",flag:true,plain:"Blood pressure higher than it should be."},
+   {sys:"vessels",kind:"med",name:"Amlodipine 5 mg daily",date:"2024-06",plain:"A daily medicine that lowers blood pressure."},
+   {sys:"vessels",kind:"lab",name:"Clinic blood pressure",v:"136/86 mmHg",ref:"below 130/80",date:"2025-11-03",flag:true,plain:"Measured at the clinic. Above target."},
+   {sys:"vessels",kind:"lab",name:"LDL cholesterol",v:"3.6 mmol/L",ref:"below 3.4",date:"2025-11-03",flag:true,plain:"\"Bad\" cholesterol. A little high."},
+   {sys:"vessels",kind:"rx",name:"Last pharmacy refill",date:"2026-04-10",flag:true,plain:"No refill of the blood pressure medicine since."}],
+  events:[{date:"2026-04-10",label:"Last refill"}]},
+ {id:"pcos",name:"Priya",age:29,sex:"F",scenario:"pcos",shiftDay:dayOfISO("2026-02-02"),
+  base:{sleep:7.4,steps:9000,rhr:66,hrv:48,weight:71},
+  drift:{weight:[5,5,3.8],rhr:[5,4,5],hrv:[4,4,-9]},
+  cycles:{len:32,before:[1,1,1,1,1,0,1],after:[0,0,1,0,0,1]},
+  record:[
+   {sys:"hormones",kind:"dx",code:"PCOS",name:"PCOS (polycystic ovary syndrome)",date:"2023-11",flag:true,plain:"A hormone condition that can make ovulation irregular."},
+   {sys:"hormones",kind:"med",name:"Metformin 500 mg twice daily",date:"2024-01",plain:"Helps the body use insulin better."},
+   {sys:"metabolic",kind:"lab",name:"HOMA-IR",v:"3.1",ref:"below 2.5",date:"2025-07-03",flag:true,plain:"How hard the body works to control sugar. Higher means harder."},
+   {sys:"hormones",kind:"lab",name:"Testosterone",v:"2.4 nmol/L",ref:"below 1.7",date:"2025-07-03",flag:true,plain:"A hormone often higher in PCOS."},
+   {sys:"sleep",kind:"note",name:"Started night shifts",date:"2026-02-02",plain:"Patient told VitaLens about a new work schedule."}],
+  events:[{date:"2026-02-02",label:"Night shifts"}]},
+ {id:"control",name:"Mei",age:44,sex:"F",scenario:null,
+  base:{sleep:7.5,steps:9600,rhr:60,hrv:50,weight:64},drift:{},
+  bp:{base:116,drift:null,refillDay:9999,missBefore:0,missAfter:0},
+  cycles:{len:29,before:[1],after:[1]},
+  record:[
+   {sys:"metabolic",kind:"lab",name:"HbA1c",v:"5.3%",ref:"below 5.7%",date:"2025-10-20",plain:"Average blood sugar. Normal."},
+   {sys:"vessels",kind:"lab",name:"Clinic blood pressure",v:"118/76 mmHg",ref:"below 130/80",date:"2025-10-20",plain:"Normal."}],
+  events:[{date:"2025-10-20",label:"Check-up"}]}
+];
+
+/* ---------------- daily data ---------------- */
+function generate(p,seed){
+  const r=rng(seed),b=p.base,dr=p.drift||{},D={sleep:[],bed:[],steps:[],rhr:[],hrv:[],weight:[]};
+  for(let d=0;d<N;d++){
+    const shift=p.shiftDay!=null&&d>=p.shiftDay;
+    D.sleep.push(clamp(b.sleep+ramp(d,dr.sleep)+(shift?-.9:0)+gauss(r)*(shift?.85:.45),3.5,10));
+    D.bed.push((shift?(d%7<3?4.5:.3):.6)+gauss(r)*(shift?.9:.35));
+    D.steps.push(Math.max(600,b.steps+ramp(d,dr.steps)+gauss(r)*1600-(d%7>=5?700:0)));
+    const ps=d?D.sleep[d-1]:b.sleep;
+    D.rhr.push(b.rhr+ramp(d,dr.rhr)+.9*(b.sleep-ps)+gauss(r)*1.6);
+    D.hrv.push(Math.max(12,b.hrv+ramp(d,dr.hrv)-3.2*(b.sleep-ps)+gauss(r)*4.5));
+    D.weight.push(r()<.22?null:b.weight+ramp(d,dr.weight)+gauss(r)*.35);
+  }
+  if(p.glucose){const g=p.glucose;D.fast=[];D.peak=[];D.tir=[];D.cv=[];D.mean=[];
+    for(let d=0;d<N;d++){const ps=d?D.sleep[d-1]:b.sleep;
+      const f=g.base+ramp(d,g.drift)+.32*(b.sleep-ps)+gauss(r)*.18;
+      const pk=f+g.meal+ramp(d,g.mealDrift)+.00018*(b.steps-D.steps[d])+gauss(r)*.35;
+      const hrs=[];for(let h=0;h<24;h++){let v=f;for(const m of [8,13,19]){const dt=h-m;if(dt>=0&&dt<4)v+=(pk-f)*(m===13?1:.85)*Math.exp(-((dt-1)**2)/1.2)}hrs.push(v+gauss(r)*.15)}
+      const mu=mean(hrs);D.fast.push(f);D.peak.push(Math.max(...hrs));D.mean.push(mu);
+      D.tir.push(hrs.filter(v=>v>=3.9&&v<=7.8).length/24*100);D.cv.push(sd(hrs)/mu*100)}}
+  if(p.bp){const B=p.bp;D.sys=[];D.dia=[];D.missed=[];
+    for(let d=0;d<N;d++){D.missed.push(r()<(d<B.refillDay?B.missBefore:B.missAfter));
+      const s=B.base+ramp(d,B.drift)+(d>0&&D.missed[d-1]?9:0)-.0009*((d?D.steps[d-1]:b.steps)-b.steps)+gauss(r)*4.5;
+      D.sys.push(s);D.dia.push(.6*s+5+gauss(r)*3)}}
+  if(p.cycles){const C=p.cycles;D.cycles=[];D.temp=new Array(N).fill(null);let day=-Math.floor(5+r()*15);
+    let pre=0,post=0;
+    while(day<N){const shift=p.shiftDay!=null&&day>=p.shiftDay;const ov=shift?C.after[post++%C.after.length]:C.before[pre++%C.before.length];
+      const L=Math.round(ov?C.len+gauss(r)*1.6:48+r()*14);D.cycles.push({start:day,len:L,ov});
+      for(let k=0;k<L;k++){const dd=day+k;if(dd>=0&&dd<N)D.temp[dd]=36.35+(ov&&k>=L-13?.3:0)+gauss(r)*.08}day+=L}}
+  return D;
+}
+
+/* ---------------- metrics (monthly) per system ---------------- */
+const TOL={rhr:4,hrv:6,sys:8,bpsd:2,adh:10,fast:.4,tir:10,cv:4,peak:.6,sleep:.5,bedsd:.6,cycle:7,ov:30,steps:.15,low:15,weight:2};
+function tile(key,name,unit,dec,mon,plain,worse){
+  const usual=mean(mon.slice(0,3)),recent=mean(mon.slice(9)),tol=key==="steps"?usual*TOL.steps:TOL[key];
+  const diff=recent!=null&&usual!=null?recent-usual:null;
+  const changed=diff!=null&&Math.abs(diff)>=tol;
+  const bad=changed&&((worse==="up"&&diff>0)||(worse==="down"&&diff<0));
+  return{key,name,unit,dec,mon,usual,recent,diff,tol,changed,bad,plain,worse};
+}
+function analyse(p,D){
+  const S={};
+  const M=x=>monthly(x);
+  // heart
+  S.heart={tiles:[tile("rhr","Resting heart rate","bpm",0,M(D.rhr),"Beats per minute while resting. Usually lower when the body is rested and fit.","up"),
+    tile("hrv","Heart rate variability (HRV)","ms",0,M(D.hrv),"Tiny changes in time between heartbeats. Higher usually means the body is well rested and handling stress.","down")],rel:[]};
+  {const xs=[],ys=[];for(let d=1;d<N;d++){xs.push(D.sleep[d-1]);ys.push(D.hrv[d])}const q=pearson(xs,ys);
+   S.heart.rel.push({title:"Sleep → next-day HRV",text:`After a night with 1 hour less sleep, HRV was about ${Math.abs(q.slope).toFixed(1)} ms lower the next day.`,stat:`r = ${q.r.toFixed(2)} · ${q.n} days`,chart:{type:"scatter",xs,ys,xl:"Sleep the night before (h)",yl:"HRV next day (ms)",q}})}
+  // vessels
+  if(D.sys){const adh=monthly(D.missed.map(m=>m?0:100));
+    S.vessels={tiles:[tile("sys","Home blood pressure (top)","mmHg",0,M(D.sys),"Pressure in the arteries when the heart beats. Measured at home each morning.","up"),
+      tile("bpsd","Day-to-day BP swing","mmHg",1,monthly(D.sys,sd),"How much blood pressure jumps from day to day. Bigger swings put more strain on blood vessels.","up"),
+      tile("adh","Medicine taken","% of days",0,adh,"Days the blood pressure medicine was taken, from the smart pill bottle and pharmacy refills.","down")],rel:[]};
+    const after=[],norm=[];for(let d=1;d<N;d++)(D.missed[d-1]?after:norm).push(D.sys[d]);
+    if(after.length>8){const a=mean(after),n=mean(norm);
+      S.vessels.rel.push({title:"Missed medicine → next-day blood pressure",text:`On days after a missed dose, home blood pressure was about ${(a-n).toFixed(0)} mmHg higher (${after.length} missed days).`,stat:`${after.length} vs ${norm.length} days`,chart:{type:"bars",a:{label:"After a missed dose",v:a},b:{label:"After a dose taken",v:n},unit:"mmHg"}})}
+    {const xs=[],ys=[];for(let d=1;d<N;d++){xs.push(D.steps[d-1]/1000);ys.push(D.sys[d])}const q=pearson(xs,ys);
+     S.vessels.rel.push({title:"Walking → next-day blood pressure",text:`Each extra 1,000 steps was followed by blood pressure about ${Math.abs(q.slope).toFixed(1)} mmHg lower the next day.`,stat:`r = ${q.r.toFixed(2)} · ${q.n} days`,chart:{type:"scatter",xs,ys,xl:"Steps the day before (thousands)",yl:"Top number next day (mmHg)",q}})}
+  }else S.vessels={tiles:[],rel:[],nodata:"No home blood pressure cuff connected."};
+  // metabolic
+  if(D.fast){S.metabolic={tiles:[tile("fast","Morning blood sugar","mmol/L",1,M(D.fast),"Blood sugar when waking up, before eating.","up"),
+      tile("tir","Time in healthy range","% of day",0,M(D.tir),"Share of the day blood sugar stays between 3.9 and 7.8 mmol/L, from a glucose sensor.","down"),
+      tile("cv","Glucose variability","%",0,M(D.cv),"How much blood sugar swings up and down during the day. Steadier is better.","up"),
+      tile("peak","After-meal peak","mmol/L",1,M(D.peak),"The highest blood sugar after meals.","up")],rel:[]};
+    const L=p.labs;if(L){const tyg=Math.log(L.tg*88.57*L.fpg*18.016/2);S.metabolic.extra={name:"TyG index",v:tyg.toFixed(2),plain:"A research marker of insulin resistance calculated from two blood tests (triglycerides and fasting glucose). Higher means the body may be working harder to control sugar."}}
+    {const xs=[],ys=[];for(let d=1;d<N;d++){xs.push(D.sleep[d-1]);ys.push(D.fast[d])}const q=pearson(xs,ys);
+     S.metabolic.rel.push({title:"Sleep → next-morning blood sugar",text:`After a night with 1 hour less sleep, morning blood sugar was about ${Math.abs(q.slope).toFixed(2)} mmol/L higher.`,stat:`r = ${q.r.toFixed(2)} · ${q.n} days`,chart:{type:"scatter",xs,ys,xl:"Sleep the night before (h)",yl:"Morning blood sugar (mmol/L)",q}})}
+    {const xs=D.steps.map(s=>s/1000),ys=D.peak,q=pearson(xs,ys);
+     S.metabolic.rel.push({title:"Walking → after-meal peaks",text:`On days with 1,000 fewer steps, after-meal peaks were about ${Math.abs(q.slope).toFixed(2)} mmol/L higher.`,stat:`r = ${q.r.toFixed(2)} · ${q.n} days`,chart:{type:"scatter",xs,ys,xl:"Steps that day (thousands)",yl:"After-meal peak (mmol/L)",q}})}
+  }else S.metabolic={tiles:[],rel:[],nodata:"No glucose sensor connected. Only lab results are available."};
+  // sleep
+  S.sleep={tiles:[tile("sleep","Sleep","hours/night",1,M(D.sleep),"Hours of sleep each night, from the wearable.","down"),
+    tile("bedsd","Bedtime regularity","± hours",1,monthly(D.bed,sd),"How much bedtime moves from night to night. Big shifts confuse the body clock.","up")],rel:[]};
+  {const xs=[],ys=[];for(let d=1;d<N;d++){xs.push(D.sleep[d-1]);ys.push(D.rhr[d])}const q=pearson(xs,ys);
+   S.sleep.rel.push({title:"Sleep → next-day resting heart rate",text:`After a night with 1 hour less sleep, resting heart rate was about ${Math.abs(q.slope).toFixed(1)} bpm higher.`,stat:`r = ${q.r.toFixed(2)} · ${q.n} days`,chart:{type:"scatter",xs,ys,xl:"Sleep the night before (h)",yl:"Resting heart rate (bpm)",q}})}
+  // hormones
+  if(D.cycles){const starts=D.cycles.filter(c=>c.start>=0);
+    const cm=Array.from({length:12},()=>[]),om=Array.from({length:12},()=>[]);
+    starts.forEach(c=>{const i=monthOf(c.start);if(i>=0&&i<12){cm[i].push(c.len);om[i].push(c.ov?100:0)}});
+    S.hormones={tiles:[tile("cycle","Cycle length","days",0,cm.map(x=>x.length?mean(x):null),"Days from one period to the next. Usually about 25–35 days.","up"),
+      tile("ov","Ovulation detected","% of cycles",0,om.map(x=>x.length?mean(x):null),"Found from a small rise in night-time skin temperature after an egg is released.","down")],rel:[]};
+    S.hormones.cycles=D.cycles;S.hormones.temp=D.temp;
+    if(p.shiftDay!=null){const pre=starts.filter(c=>c.start<p.shiftDay),post=starts.filter(c=>c.start>=p.shiftDay);
+      const a=mean(pre.map(c=>c.ov?100:0)),bb=mean(post.map(c=>c.ov?100:0));
+      S.hormones.rel.push({title:"Night shifts → ovulation",text:`Before night shifts, ovulation was detected in ${Math.round(a)}% of cycles (${pre.length} cycles). Since then, ${Math.round(bb)}% (${post.length} cycles). Irregular sleep can disturb the hormones that trigger ovulation.`,stat:`${pre.length} vs ${post.length} cycles`,chart:{type:"bars",a:{label:"Before night shifts",v:a},b:{label:"Since night shifts",v:bb},unit:"%"}})}
+  }else S.hormones={tiles:[],rel:[],nodata:p.sex==="M"?"Not applicable.":"No cycle tracking connected."};
+  // activity
+  S.activity={tiles:[tile("steps","Daily steps","steps",0,M(D.steps),"Steps per day from the phone or wearable.","down"),
+    tile("low","Low-activity days","% under 5,000 steps",0,monthly(D.steps.map(s=>s<5000?100:0)),"Share of days with fewer than 5,000 steps.","up")],rel:[]};
+  if(S.metabolic.rel[1])S.activity.rel.push(S.metabolic.rel[1]);if(S.vessels.rel[1])S.activity.rel.push(S.vessels.rel[1]);
+  // body
+  S.body={tiles:[tile("weight","Weight","kg",1,M(D.weight),"Body weight from the smart scale.","up")],rel:[]};
+  for(const k in S){S[k].record=p.record.filter(x=>x.sys===k);S[k].status=S[k].nodata&&!S[k].tiles.length?"nodata":S[k].tiles.some(t=>t.bad)?"change":"ok"}
+  return S;
+}
+
+/* ---------------- scenario patterns (configuration) ---------------- */
+const PATTERNS={
+  metabolic:{n:"01",title:"Metabolic health",sub:"Type 2 diabetes risk",history:[{lab:"HbA1c"},{lab:"Fasting glucose"}],
+    signals:[["body","weight","up"],["metabolic","fast","up"],["metabolic","tir","down"],["sleep","sleep","down"],["activity","steps","down"],["heart","hrv","down"]],min:3,
+    note:"When weight, sleep, activity and blood sugar move together like this, it can be worth checking blood sugar again. Your doctor can decide."},
+  cardio:{n:"02",title:"Cardiovascular",sub:"Hypertension risk",history:[{dx:"hypertension"},{lab:"Clinic blood pressure"}],
+    signals:[["vessels","sys","up"],["vessels","adh","down"],["heart","rhr","up"],["heart","hrv","down"],["activity","steps","down"]],min:3,
+    note:"Your doctor can check whether your blood pressure medicine or routine needs a look."},
+  pcos:{n:"03",title:"PCOS",sub:"Women's health",history:[{dx:"PCOS"}],
+    signals:[["hormones","cycle","up"],["hormones","ov","down"],["sleep","bedsd","up"],["body","weight","up"],["heart","rhr","up"]],min:3,
+    note:"Longer cycles with fewer ovulations, alongside sleep and weight changes, are worth reviewing with your doctor as part of your PCOS care."}
+};
+function patterns(p,S){
+  return Object.entries(PATTERNS).map(([id,P])=>{
+    const hist=P.history.map(h=>p.record.find(x=>(h.lab&&x.name===h.lab&&x.flag)||(h.dx&&x.code===h.dx))).filter(Boolean);
+    const matched=P.signals.filter(([s,k,dir])=>{const t=(S[s].tiles||[]).find(t=>t.key===k);return t&&t.changed&&((dir==="up")===(t.diff>0))});
+    return{id,P,hist,matched,fired:hist.length>0&&matched.length>=P.min,total:P.signals.length};
+  });
+}
+
+const DATA=PATIENTS.map((p,i)=>{const D=generate(p,i*7919+101),S=analyse(p,D);return{p,D,S,pats:patterns(p,S)}});
+G.VL={N,START,DAY,MON,MONL,MONTHS,mLabel,fmtDate,dayOfISO,monthOf,PATIENTS,PATTERNS,DATA,mean};
+})(typeof window!=="undefined"?window:globalThis);
+
+</script>
+<script>
+(function(){
+const V=window.VL;
+const SYS={
+  heart:{name:"Heart",color:"#EF5A5A",what:"Pumps blood around the body. A wearable measures resting heart rate and heart rate variability (HRV) every night.",dist:.8},
+  vessels:{name:"Blood vessels & blood pressure",color:"#F07878",what:"Arteries carry blood from the heart under pressure. A home cuff measures that pressure; the kidneys help control it.",dist:2.4},
+  metabolic:{name:"Pancreas & liver · blood sugar",color:"#E8B85A",what:"The pancreas makes insulin and the liver stores sugar. Together they keep blood sugar steady after meals.",dist:.85},
+  sleep:{name:"Brain · sleep & body clock",color:"#C9A3F2",what:"The brain runs the body clock. Regular sleep keeps hormones, heart rate and blood sugar in rhythm.",dist:.75},
+  hormones:{name:"Ovaries & uterus · cycle",color:"#E58AC0",what:"Each cycle the ovaries release an egg (ovulation). In PCOS ovulation can become irregular, so cycles get longer.",dist:.8},
+  activity:{name:"Muscles · activity",color:"#4FD1C5",what:"Working muscles use sugar for energy. Regular walking helps both blood sugar and blood pressure.",dist:2.5},
+  body:{name:"Body weight",color:"#9CC7C2",what:"Weight from a smart scale. Slow changes over months matter more than day-to-day ups and downs.",dist:2.6}
+};
+const ORDER=["heart","vessels","metabolic","sleep","hormones","activity","body"];
+let cur=0,sel=null;
+const $=id=>document.getElementById(id);
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const fmt=(t,v)=>v==null?"–":t.key==="steps"?Math.round(v).toLocaleString("en-US"):v.toFixed(t.dec);
+const monthYear=iso=>{const [y,m]=iso.split("-").map(Number);return `${V.MONL[m-1]} ${y}`};
+const statusTxt={change:"Changed",ok:"Close to usual",nodata:"No data"};
+
+/* ---------- plain-language phrases for matched signals ---------- */
+const PH={
+  weight:t=>`weight is up about ${Math.abs(t.diff).toFixed(1)} kg`,
+  fast:t=>`morning blood sugar is up about ${Math.abs(t.diff).toFixed(1)} mmol/L`,
+  tir:t=>`time in the healthy blood sugar range fell from ${Math.round(t.usual)}% to ${Math.round(t.recent)}% of the day`,
+  sleep:t=>`sleep is down about ${Math.abs(t.diff).toFixed(1)} hours a night`,
+  steps:t=>`walking is down about ${Math.round(Math.abs(t.diff/t.usual*100))}%`,
+  hrv:t=>`heart rate variability fell from ${Math.round(t.usual)} to ${Math.round(t.recent)} ms`,
+  rhr:t=>`resting heart rate is up about ${Math.round(Math.abs(t.diff))} bpm`,
+  sys:t=>`home blood pressure is up about ${Math.round(Math.abs(t.diff))} mmHg`,
+  adh:t=>`the blood pressure medicine was taken on ${Math.round(t.recent)}% of days (was ${Math.round(t.usual)}%)`,
+  cycle:t=>`cycles are about ${Math.round(Math.abs(t.diff))} days longer`,
+  ov:t=>`ovulation was found in ${Math.round(t.recent)}% of recent cycles (was ${Math.round(t.usual)}%)`,
+  bedsd:t=>`bedtime now moves by about ±${t.recent.toFixed(1)} hours night to night (was ±${t.usual.toFixed(1)})`
+};
+const join=a=>a.length<2?a.join(""):a.slice(0,-1).join(", ")+" and "+a[a.length-1];
+const tileOf=(S,s,k)=>(S[s].tiles||[]).find(t=>t.key===k);
+
+/* =================== panel =================== */
+function renderPatients(){
+  $("pts").innerHTML=V.DATA.map((x,i)=>{const P=x.p.scenario?V.PATTERNS[x.p.scenario]:null;
+    return `<button type="button" class="pt" data-i="${i}" aria-pressed="${i===cur}"><small>${P?P.n+" · "+P.title.toUpperCase():"CONTROL"}</small><span>${x.p.name}, ${x.p.age}</span></button>`}).join("");
+}
+function renderSysbar(){
+  const S=V.DATA[cur].S,p=V.DATA[cur].p;
+  $("sysbar").innerHTML=ORDER.filter(k=>k!=="hormones"||p.sex==="F").map(k=>`<button type="button" class="chip" data-sys="${k}" aria-pressed="${sel===k}"><span class="dot ${S[k].status}"></span>${SYS[k].name.split(" · ")[0]}</button>`).join("");
+}
+function overview(){
+  const {p,S,pats}=V.DATA[cur],best=pats.find(x=>x.fired);
+  let h=`<section class="card">`;
+  if(best){const P=best.P;
+    const parts=best.matched.map(([s,k])=>PH[k](tileOf(S,s,k)));
+    const hist=best.hist.map(r=>r.kind==="lab"?`a ${r.name==="HbA1c"||r.name==="HOMA-IR"?r.name:r.name.toLowerCase()} of ${r.v} (${monthYear(r.date)})`:`${r.name} on record`);
+    const extra=p.record.filter(r=>r.kind==="rx"||r.kind==="note").map(r=>r.kind==="rx"?` There has been no medicine refill since ${V.fmtDate(r.date)}.`:` ${p.name} told us she ${r.name.toLowerCase()} in ${monthYear(r.date)}.`).join("");
+    const sources=new Set(best.matched.map(([s])=>s));
+    h+=`<div class="row"><span class="eyebrow">${P.n} · ${P.title} · ${P.sub}</span><span class="pill high">${best.matched.length} of ${best.total} signals agree</span></div>
+      <h2 style="margin-top:8px">${p.name}'s body systems changed together, and they connect to her history</h2>`.replace(" her "," "+(p.sex==="M"?"his":"her")+" ")+
+      `<p class="lead">Over the past year, ${join(parts)}, compared with ${p.sex==="M"?"his":"her"} own usual from October to December 2025. This lines up with ${join(hist)}.${extra} ${P.note}</p>
+      <p class="disc">Found by linking ${sources.size} body systems with the clinical record. Tap a glowing part to see the evidence and how the signals affect each other. This is not a diagnosis.</p>`;
+  }else{
+    h+=`<div class="row"><span class="eyebrow">Control · stable patient</span><span class="pill ok">Nothing flagged</span></div>
+      <h2 style="margin-top:8px">${p.name}'s systems stayed close to her usual</h2>
+      <p class="lead">All three scenario patterns were checked across every body system. None matched, so VitaLens raises nothing. This shows it does not create false alarms.</p>`;
+  }
+  h+=`<div class="syslist">${ORDER.filter(k=>k!=="hormones"||p.sex==="F").map(k=>{const s=S[k];const bad=(s.tiles||[]).filter(t=>t.bad);
+    const sub=s.status==="nodata"?s.nodata:bad.length?bad.map(t=>t.name).join(", ")+" changed":"Within "+(p.sex==="M"?"his":"her")+" usual range";
+    return `<button type="button" class="sysrow" data-sys="${k}"><span class="dot ${s.status}"></span><span><b>${SYS[k].name}</b><span class="s">${esc(sub)}</span></span><span class="go">›</span></button>`}).join("")}</div></section>`;
+  h+=`<section class="card"><h3>One framework, three scenarios</h3><p class="muted small" style="margin-top:4px">The same code checks every patient. Each scenario is configuration: the history it looks for and the body systems it watches.</p>
+    <div class="tbl"><table><thead><tr><th>Scenario</th><th>Watches</th><th>${p.name}</th></tr></thead><tbody>
+    ${pats.map(x=>`<tr><td><b>${x.P.n} ${x.P.title}</b></td><td class="small">${x.P.signals.map(([s,k,d])=>`${(tileOf(S,s,k)||{name:k}).name} ${d==="up"?"↑":"↓"}`).join(" · ")}</td><td>${x.fired?`<span class="pill change">Matched ${x.matched.length}/${x.total}</span>`:`<span class="pill nodata">${x.matched.length}/${x.total}${x.hist.length?"":" · no history link"}</span>`}</td></tr>`).join("")}
+    </tbody></table></div></section>`;
+  return h;
+}
+function spark(t){
+  const W=200,H=34,v=t.mon.filter(x=>x!=null);if(!v.length)return"";
+  let lo=Math.min(...v,t.usual-t.tol),hi=Math.max(...v,t.usual+t.tol);const pad=(hi-lo)*.1||1;lo-=pad;hi+=pad;
+  const X=i=>4+i*(W-8)/11,Y=x=>2+(1-(x-lo)/(hi-lo))*(H-4);
+  let d="",on=false;t.mon.forEach((x,i)=>{if(x==null){on=false;return}d+=(on?"L":"M")+X(i).toFixed(1)+" "+Y(x).toFixed(1);on=true});
+  return `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" aria-hidden="true"><rect x="0" y="${Y(t.usual+t.tol)}" width="${W}" height="${Y(t.usual-t.tol)-Y(t.usual+t.tol)}" fill="#4FD1C5" opacity=".12"/><path d="${d}" fill="none" stroke="${t.bad?"#F29A6B":"#4FD1C5"}" stroke-width="1.8" vector-effect="non-scaling-stroke"/>${t.mon.map((x,i)=>x==null?"":`<circle cx="${X(i)}" cy="${Y(x)}" r="1.8" fill="${Math.abs(x-t.usual)>=t.tol?"#F29A6B":"#4FD1C5"}"/>`).join("")}</svg>`;
+}
+function scatter(c){
+  const W=340,H=214,ml=40,mr=18,mt=24,mb=34,pw=W-ml-mr,ph=H-mt-mb;
+  const xs=c.xs,ys=c.ys;const x0=Math.min(...xs),x1=Math.max(...xs),y0=Math.min(...ys),y1=Math.max(...ys);
+  const X=x=>ml+(x-x0)/(x1-x0)*pw,Y=y=>mt+(1-(y-y0)/(y1-y0))*ph;
+  const tk=(a,b)=>[a,(a+b)/2,b];const f=v=>Math.abs(v)>=100?v.toFixed(0):v.toFixed(1);
+  let s=`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(c.xl)} against ${esc(c.yl)}">`;
+  tk(y0,y1).forEach(v=>{s+=`<line x1="${ml}" x2="${W-mr}" y1="${Y(v)}" y2="${Y(v)}" stroke="#21363A"/><text x="${ml-6}" y="${Y(v)+3.5}" text-anchor="end" font-size="10" fill="#8EA5A9" font-family="IBM Plex Mono,monospace">${f(v)}</text>`});
+  tk(x0,x1).forEach((v,i)=>{s+=`<text x="${X(v)}" y="${H-mb+14}" text-anchor="${i===0?"start":i===2?"end":"middle"}" font-size="10" fill="#8EA5A9" font-family="IBM Plex Mono,monospace">${f(v)}</text>`});
+  xs.forEach((x,i)=>{s+=`<circle cx="${X(x).toFixed(1)}" cy="${Y(ys[i]).toFixed(1)}" r="2" fill="#4FD1C5" opacity=".35"/>`});
+  const q=c.q,cid="cl"+Math.random().toString(36).slice(2,8);s+=`<clipPath id="${cid}"><rect x="${ml}" y="${mt}" width="${pw}" height="${ph}"/></clipPath><line clip-path="url(#${cid})" x1="${X(x0)}" y1="${Y(q.icpt+q.slope*x0)}" x2="${X(x1)}" y2="${Y(q.icpt+q.slope*x1)}" stroke="#F29A6B" stroke-width="2.4"/>`;
+  s+=`<text x="${ml+pw/2}" y="${H-4}" text-anchor="middle" font-size="10.5" fill="#8EA5A9" font-family="Atkinson Hyperlegible,sans-serif">${esc(c.xl)}</text>`;
+  s+=`<text x="${ml-34}" y="12" font-size="10.5" fill="#8EA5A9" font-family="Atkinson Hyperlegible,sans-serif">↑ ${esc(c.yl)}</text>`;
+  return s+"</svg>";
+}
+function bars(c){
+  const W=340,H=96,ml=128,mr=60;const mx=Math.max(c.a.v,c.b.v)*1.05,min=c.unit==="%"?0:Math.min(c.a.v,c.b.v)*.9;
+  const L=v=>(v-min)/(mx-min)*(W-ml-mr);
+  const row=(o,y,col)=>`<text x="${ml-8}" y="${y+15}" text-anchor="end" font-size="11.5" fill="#E3EEEF" font-family="Atkinson Hyperlegible,sans-serif">${esc(o.label)}</text><rect x="${ml}" y="${y}" width="${Math.max(2,L(o.v))}" height="22" rx="4" fill="${col}"/><text x="${ml+Math.max(2,L(o.v))+6}" y="${y+15}" font-size="11.5" fill="#E3EEEF" font-family="IBM Plex Mono,monospace">${Math.round(o.v)}${c.unit==="%"?"%":" "+c.unit}</text>`;
+  return `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(c.a.label)} compared with ${esc(c.b.label)}">${row(c.a,14,"#F29A6B")}${row(c.b,52,"#4FD1C5")}</svg>`;
+}
+function cycleMap(h){
+  const W=340,H=70,ml=6,mr=6,pw=W-ml-mr,X=d=>ml+Math.max(0,Math.min(365,d))/365*pw;
+  let s=`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Cycle map for the year">`;
+  h.cycles.forEach(c=>{if(c.start>=365||c.start+c.len<0)return;const x=X(c.start),w=X(c.start+c.len)-x-2;
+    s+=`<rect x="${x}" y="14" width="${Math.max(1,w)}" height="22" rx="4" fill="${c.ov?"#4FD1C5":"none"}" fill-opacity="${c.ov?.35:0}" stroke="${c.ov?"#4FD1C5":"#F29A6B"}" stroke-width="1.4" ${c.ov?"":'stroke-dasharray="3 3"'}/>`;
+    if(w>22)s+=`<text x="${x+w/2}" y="29" text-anchor="middle" font-size="10" fill="#E3EEEF" font-family="IBM Plex Mono,monospace">${c.len}d</text>`});
+  V.MONTHS.forEach((m,i)=>{if(i%2)return;const d=Math.round((Date.UTC(m.y,m.m,1)-V.START)/V.DAY);s+=`<text x="${X(d)+2}" y="54" font-size="10" fill="#8EA5A9" font-family="IBM Plex Mono,monospace">${V.MON[m.m]}</text>`});
+  s+=`<text x="${ml}" y="68" font-size="10" fill="#8EA5A9" font-family="Atkinson Hyperlegible,sans-serif">Solid = ovulation found · dashed = no ovulation found</text>`;
+  return s+"</svg>";
+}
+function systemView(k){
+  const {p,S,pats}=V.DATA[cur],s=S[k],Y=SYS[k];
+  const inPat=pats.find(x=>x.fired&&x.matched.some(([sy])=>sy===k));
+  let h=`<section class="card"><button type="button" class="back" id="back">← Whole body</button>
+    <div class="row" style="margin-top:8px"><h2>${Y.name}</h2><span class="pill ${s.status}">${statusTxt[s.status]}</span></div>
+    <p class="muted small" style="margin-top:6px">${Y.what}</p>`;
+  if(DETAIL_OK&&k!=="activity"&&k!=="body")h+=`<div id="detail"><span class="cap">3D view · drag to turn</span><div class="read" id="dread"></div></div>`;
+  if(s.nodata&&!s.tiles.length)h+=`<p style="margin-top:12px">${esc(s.nodata)}</p>`;
+  if(s.tiles.length)h+=`<div class="tiles">${s.tiles.map((t,i)=>`<div class="tile${t.bad?" bad":""}"><span class="n">${t.name}<button type="button" class="q" data-q="${i}" aria-label="What is ${esc(t.name)}?">?</button></span>
+     <span class="v">${fmt(t,t.recent)} <small>${t.unit}</small></span><span class="u">Usual ${fmt(t,t.usual)} · last 3 months</span>${spark(t)}<span class="ex" id="ex${i}" hidden>${t.plain}</span></div>`).join("")}
+     ${s.extra?`<div class="tile"><span class="n">${s.extra.name}<span class="flag">LAB-DERIVED</span></span><span class="v">${s.extra.v}</span><span class="ex">${s.extra.plain}</span></div>`:""}</div>`;
+  if(k==="hormones"&&s.cycles)h+=`<div class="rel"><h3>Cycle map</h3><p class="small muted">Each block is one cycle. Ovulation is found from night-time temperature.</p>${cycleMap(s)}</div>`;
+  h+=`</section>`;
+  if(s.rel.length)h+=`<section class="card"><h3>How signals affect each other</h3><p class="muted small" style="margin-top:4px">Worked out from ${p.name}'s own 365 days of data. These are links in the data, not proof of cause.</p>
+    ${s.rel.map(r=>`<div class="rel"><h3><span class="tag">RELATIONSHIP</span>${esc(r.title)}</h3><p>${esc(r.text)}</p><div class="st">${esc(r.stat)}</div>${r.chart.type==="scatter"?scatter(r.chart):bars(r.chart)}</div>`).join("")}</section>`;
+  if(s.record.length)h+=`<section class="card"><h3>From the clinical record</h3><ul class="rec">${s.record.map(r=>`<li><b>${esc(r.name)}${r.v?" · "+r.v:""}</b>${r.flag?`<span class="flag">${r.kind==="lab"?"OUTSIDE TARGET":r.kind==="dx"?"ON RECORD":"NOTE"}</span>`:""} <span class="muted small">${V.fmtDate(r.date)}</span><span class="p">${esc(r.plain)}${r.ref?" Target "+esc(r.ref)+".":""}</span></li>`).join("")}</ul></section>`;
+  if(inPat)h+=`<section class="card"><span class="eyebrow">Part of scenario ${inPat.P.n}</span><p style="margin-top:6px">This system is one of ${inPat.matched.length} that changed together in the <b>${inPat.P.title}</b> pattern. <button type="button" class="back" id="back2">See the full insight</button></p></section>`;
+  return h;
+}
+function renderPanel(){
+  $("panel").innerHTML=sel?systemView(sel):overview();
+  if(sel&&DETAIL_OK&&$("detail"))mountDetail(sel);else unmountDetail();
+}
+function renderAll(){renderPatients();renderSysbar();renderPanel();if(GL_OK)applyPatient()}
+
+document.addEventListener("click",e=>{const b=e.target.closest("button");if(!b)return;
+  if(b.dataset.i!=null){cur=+b.dataset.i;sel=null;renderAll();focus(null);return}
+  if(b.dataset.sys){select(b.dataset.sys);return}
+  if(b.id==="back"||b.id==="back2"||b.id==="reset"){select(null);return}
+  if(b.dataset.q!=null){const el=$("ex"+b.dataset.q);if(el)el.hidden=!el.hidden}});
+function select(k){sel=k;renderSysbar();renderPanel();if(GL_OK){focus(k);highlight()}
+  if(k&&window.matchMedia("(max-width:900px)").matches){$("panel").scrollIntoView({behavior:"smooth",block:"start"})}}
+
+/* =================== 3D body =================== */
+let GL_OK=false,DETAIL_OK=false;
+let renderer,scene,camera,controls,clock,body,pick=[],skinPick=[],organs={},heartG,arteryMats=[],flow=[],tween=null,hovered=null;
+const T=window.THREE;
+function webglAvailable(){try{const c=document.createElement("canvas");return !!(window.WebGLRenderingContext&&(c.getContext("webgl")||c.getContext("experimental-webgl")))}catch(e){return false}}
+if(T&&T.OrbitControls&&webglAvailable()){try{init3D();GL_OK=true;DETAIL_OK=true}catch(e){console.error(e)}}
+if(!GL_OK){$("gl").insertAdjacentHTML("beforeend",`<div class="fallback">3D view could not start on this device. Use the body systems below to explore.</div>`);$("hint").hidden=true}
+
+function V3(x,y,z){return new T.Vector3(x,y,z)}
+function skinMat(){
+  return new T.ShaderMaterial({transparent:true,depthWrite:false,side:T.DoubleSide,
+    uniforms:{c:{value:new T.Color("#4FD1C5")},o:{value:1}},
+    vertexShader:"varying vec3 vN;varying vec3 vV;void main(){vec4 mv=modelViewMatrix*vec4(position,1.);vN=normalize(normalMatrix*normal);vV=normalize(-mv.xyz);gl_Position=projectionMatrix*mv;}",
+    fragmentShader:"uniform vec3 c;uniform float o;varying vec3 vN;varying vec3 vV;void main(){float f=pow(1.-abs(dot(normalize(vN),normalize(vV))),2.4);gl_FragColor=vec4(c,(0.035+f*0.55)*o);}"});
+}
+function organMat(col){return new T.MeshStandardMaterial({color:col,roughness:.45,metalness:.05,emissive:new T.Color(col),emissiveIntensity:.18,transparent:true,opacity:1})}
+function limb(a,b,r1,r2,mat){const dir=new T.Vector3().subVectors(b,a),len=dir.length();const m=new T.Mesh(new T.CylinderGeometry(r2,r1,len,24,1,true),mat);
+  m.position.copy(a).add(b).multiplyScalar(.5);m.quaternion.setFromUnitVectors(V3(0,1,0),dir.normalize());return m}
+function blob(r,sx,sy,sz,col,pos,sys,rot){const m=new T.Mesh(new T.SphereGeometry(r,32,24),organMat(col));m.scale.set(sx,sy,sz);m.position.copy(pos);if(rot)m.rotation.set(rot[0],rot[1],rot[2]);if(sys){m.userData.sys=sys;pick.push(m);(organs[sys]=organs[sys]||[]).push(m)}return m}
+
+function init3D(){
+  const host=$("gl");
+  renderer=new T.WebGLRenderer({antialias:true,alpha:true});renderer.setPixelRatio(Math.min(2,window.devicePixelRatio||1));
+  renderer.setSize(host.clientWidth,host.clientHeight);host.prepend(renderer.domElement);
+  scene=new T.Scene();
+  camera=new T.PerspectiveCamera(30,host.clientWidth/host.clientHeight,.01,50);camera.position.set(0,1.1,3.6);
+  controls=new T.OrbitControls(camera,renderer.domElement);controls.target.set(0,1.0,0);controls.enableDamping=true;controls.dampingFactor=.08;
+  controls.minDistance=.45;controls.maxDistance=5;controls.enablePan=false;controls.addEventListener("start",()=>{tween=null});
+  scene.add(new T.HemisphereLight(0xcfeff0,0x0a1315,.9));const dl=new T.DirectionalLight(0xffffff,.9);dl.position.set(1.5,3,2.5);scene.add(dl);
+  const dl2=new T.DirectionalLight(0x4fd1c5,.35);dl2.position.set(-2,1,-2);scene.add(dl2);
+  body=new T.Group();scene.add(body);
+  // floor ring
+  const ring=new T.Mesh(new T.RingGeometry(.32,.34,64),new T.MeshBasicMaterial({color:0x4fd1c5,transparent:true,opacity:.35,side:T.DoubleSide}));ring.rotation.x=-Math.PI/2;ring.position.y=.005;scene.add(ring);
+  const grid=new T.PolarGridHelper(.9,8,6,64,0x1d3438,0x1d3438);grid.position.y=0;scene.add(grid);
+
+  // ---- holographic skin ----
+  const sk=skinMat(),addSkin=(m,sys)=>{m.userData.sys=sys;m.renderOrder=10;skinPick.push(m);body.add(m);return m};
+  const prof=[[.001,.84],[.1,.86],[.155,.92],[.17,.98],[.158,1.05],[.142,1.12],[.148,1.2],[.168,1.29],[.19,1.37],[.2,1.425],[.16,1.48],[.08,1.515],[.045,1.53],[.001,1.535]].map(([x,y])=>new T.Vector2(x,y));
+  const torso=new T.Mesh(new T.LatheGeometry(prof,48),sk);torso.scale.z=.62;addSkin(torso,"body");
+  const head=new T.Mesh(new T.SphereGeometry(.105,40,32),sk);head.position.set(0,1.665,0);head.scale.set(.86,1.05,.96);addSkin(head,"sleep");
+  addSkin(limb(V3(0,1.5,0),V3(0,1.6,0),.048,.044,sk),"body");
+  for(const s of [-1,1]){
+    addSkin(limb(V3(s*.205,1.43,0),V3(s*.265,1.15,0),.048,.04,sk),"activity");
+    addSkin(limb(V3(s*.265,1.15,0),V3(s*.3,.9,.03),.04,.03,sk),"activity");
+    const hand=new T.Mesh(new T.SphereGeometry(.035,20,16),sk);hand.scale.set(.7,1.4,.5);hand.position.set(s*.31,.84,.035);addSkin(hand,"activity");
+    const sh=new T.Mesh(new T.SphereGeometry(.05,24,16),sk);sh.position.set(s*.205,1.425,0);addSkin(sh,"activity");
+    addSkin(limb(V3(s*.085,.9,0),V3(s*.1,.5,.005),.078,.052,sk),"activity");
+    addSkin(limb(V3(s*.1,.5,.005),V3(s*.095,.09,-.005),.052,.034,sk),"activity");
+    const knee=new T.Mesh(new T.SphereGeometry(.052,20,16),sk);knee.position.set(s*.1,.5,.005);addSkin(knee,"activity");
+    const foot=new T.Mesh(new T.BoxGeometry(.07,.04,.17),sk);foot.position.set(s*.095,.03,.04);addSkin(foot,"activity");
+  }
+  // ---- organs ----
+  // brain: displaced icosahedron for folds
+  const bg=new T.IcosahedronGeometry(.078,5),pa=bg.attributes.position,v=new T.Vector3();
+  for(let i=0;i<pa.count;i++){v.fromBufferAttribute(pa,i);const n=v.clone().normalize();const f=1+.045*Math.sin(n.x*28)*Math.sin(n.y*24)*Math.sin(n.z*26)-.12*Math.max(0,-n.y);v.copy(n.multiplyScalar(.078*f));pa.setXYZ(i,v.x,v.y,v.z)}
+  bg.computeVertexNormals();const brain=new T.Mesh(bg,organMat("#C9A3F2"));brain.position.set(0,1.69,-.005);brain.scale.set(.92,.82,1.06);brain.userData.sys="sleep";pick.push(brain);(organs.sleep=[]).push(brain);body.add(brain);
+  // lungs (context, not interactive)
+  for(const s of [-1,1]){const l=new T.Mesh(new T.SphereGeometry(.1,28,20),new T.MeshStandardMaterial({color:"#E7A8B0",transparent:true,opacity:.16,roughness:.6,depthWrite:false}));l.scale.set(.78,1.25,.6);l.position.set(s*.083,1.31,.0);body.add(l)}
+  // heart group
+  heartG=new T.Group();heartG.position.set(.028,1.3,.04);heartG.rotation.set(.2,0,-.45);
+  const hm=organMat("#E04848");
+  [[.045,[0,0,0],[1,1.12,.9]],[.028,[-.026,.035,-.005],[1,1,1]],[.026,[.024,.04,-.01],[1,1,1]]].forEach(([r,p,sc])=>{const m=new T.Mesh(new T.SphereGeometry(r,28,20),hm);m.position.set(...p);m.scale.set(...sc);m.userData.sys="heart";pick.push(m);heartG.add(m)});
+  const apex=new T.Mesh(new T.ConeGeometry(.04,.07,24),hm);apex.position.set(0,-.05,0);apex.rotation.z=Math.PI;apex.userData.sys="heart";pick.push(apex);heartG.add(apex);
+  organs.heart=[heartG];body.add(heartG);
+  // abdomen: liver, stomach, pancreas; kidneys (vessels)
+  body.add(blob(.1,1.15,.52,.72,"#9B4436",V3(-.06,1.165,.03),"metabolic",[0,0,.22]));
+  body.add(blob(.05,1.15,.9,.8,"#D88F7C",V3(.075,1.155,.04),"metabolic",[0,0,-.4]));
+  body.add(blob(.06,1.3,.24,.3,"#E8B85A",V3(.02,1.105,-.005),"metabolic",[0,0,.18]));
+  for(const s of [-1,1])body.add(blob(.035,.62,1.08,.55,"#8C3636",V3(s*.068,1.075,-.05),"vessels"));
+  // reproductive (female)
+  const rep=new T.Group();organs.hormones=[rep];
+  const ut=new T.Mesh(new T.SphereGeometry(.03,24,18),organMat("#D46A98"));ut.scale.set(1,1.15,.75);ut.position.set(0,.935,.01);ut.userData.sys="hormones";pick.push(ut);rep.add(ut);
+  for(const s of [-1,1]){const ov=new T.Mesh(new T.SphereGeometry(.012,18,14),organMat("#F2A9CF"));ov.position.set(s*.058,.955,0);ov.userData.sys="hormones";pick.push(ov);rep.add(ov);
+    const tb=new T.Mesh(new T.TubeGeometry(new T.CatmullRomCurve3([V3(s*.02,.955,.01),V3(s*.04,.968,.008),V3(s*.055,.962,.002)]),12,.003,6),organMat("#D46A98"));tb.userData.sys="hormones";pick.push(tb);rep.add(tb)}
+  body.add(rep);
+  // ---- vessels ----
+  const art=organMat("#E04848"),vein=organMat("#5C86D8");arteryMats.push(art);
+  const C=pts=>new T.CatmullRomCurve3(pts.map(p=>V3(...p)));
+  const arteries=[
+    [[.025,1.33,.035],[.02,1.4,.02],[0,1.425,-.02],[-.012,1.38,-.04],[-.006,1.22,-.045],[0,1.02,-.035],[0,.955,-.02]],
+    ...[-1,1].map(s=>[[0,.955,-.02],[s*.05,.92,0],[s*.088,.76,.02],[s*.1,.5,.012],[s*.095,.14,0]]),
+    ...[-1,1].map(s=>[[0,1.425,-.02],[s*.024,1.5,0],[s*.03,1.6,0],[s*.03,1.67,0]]),
+    ...[-1,1].map(s=>[[0,1.425,-.02],[s*.12,1.435,0],[s*.205,1.405,0],[s*.265,1.15,.005],[s*.3,.91,.03]]),
+    ...[-1,1].map(s=>[[-.006,1.1,-.045],[s*.04,1.085,-.05],[s*.06,1.078,-.05]])
+  ];
+  const veins=[
+    [[.0,1.29,.035],[-.025,1.36,.0],[-.03,1.22,-.035],[-.024,1.02,-.03],[-.012,.955,-.015]],
+    ...[-1,1].map(s=>[[-.012,.955,-.015],[s*.062,.92,-.006],[s*.098,.76,.008],[s*.112,.5,0],[s*.107,.14,-.01]]),
+    ...[-1,1].map(s=>[[s*.007,1.36,0],[s*.04,1.5,.004],[s*.046,1.6,.004],[s*.042,1.67,.004]]),
+    ...[-1,1].map(s=>[[-.025,1.36,0],[s*.12,1.448,-.012],[s*.21,1.418,-.012],[s*.275,1.15,-.008],[s*.31,.91,.018]])
+  ];
+  const addTube=(pts,mat,r,isArt)=>{const c=C(pts);const m=new T.Mesh(new T.TubeGeometry(c,48,r,8),mat);m.userData.sys="vessels";pick.push(m);(organs.vessels=organs.vessels||[]).push(m);body.add(m);flow.push({c,isArt,len:c.getLength()})};
+  arteries.forEach((p,i)=>addTube(p,art,i===0?.011:.0062,true));veins.forEach((p,i)=>addTube(p,vein,i===0?.01:.0052,false));
+  // blood flow particles
+  const dotTex=(()=>{const c=document.createElement("canvas");c.width=c.height=32;const g=c.getContext("2d");const gr=g.createRadialGradient(16,16,0,16,16,16);gr.addColorStop(0,"rgba(255,255,255,1)");gr.addColorStop(1,"rgba(255,255,255,0)");g.fillStyle=gr;g.fillRect(0,0,32,32);return new T.CanvasTexture(c)})();
+  const per=7;flow.forEach(f=>{const g=new T.BufferGeometry();const arr=new Float32Array(per*3);g.setAttribute("position",new T.BufferAttribute(arr,3));
+    const pts=new T.Points(g,new T.PointsMaterial({size:.018,map:dotTex,color:f.isArt?0xff8a7a:0x9cc0ff,transparent:true,depthWrite:false,blending:T.AdditiveBlending}));
+    f.pts=pts;f.off=[...Array(per)].map((_,i)=>i/per);body.add(pts)});
+
+  clock=new T.Clock();
+  // picking
+  const ray=new T.Raycaster(),ndc=new T.Vector2();let down=null;
+  const hit=e=>{const r=renderer.domElement.getBoundingClientRect();ndc.set((e.clientX-r.left)/r.width*2-1,-(e.clientY-r.top)/r.height*2+1);ray.setFromCamera(ndc,camera);
+    let h=ray.intersectObjects(pick.filter(m=>visibleSys(m.userData.sys)),false)[0];if(!h)h=ray.intersectObjects(skinPick,false)[0];return h?h.object.userData.sys:null};
+  const el=renderer.domElement;
+  el.addEventListener("pointerdown",e=>{down={x:e.clientX,y:e.clientY}});
+  el.addEventListener("pointerup",e=>{if(!down)return;const moved=Math.hypot(e.clientX-down.x,e.clientY-down.y);down=null;if(moved>6)return;const s=hit(e);if(s)select(s)});
+  el.addEventListener("pointermove",e=>{if(e.pointerType!=="mouse")return;const s=hit(e);hovered=s;el.style.cursor=s?"pointer":"grab";
+    const tip=$("tip");if(!s){tip.hidden=true;return}const r=$("gl").getBoundingClientRect();const st=V.DATA[cur].S[s].status;
+    tip.innerHTML=`<i style="background:${SYS[s].color}"></i>${SYS[s].name} · <span class="muted">${statusTxt[st]}</span>`;tip.style.left=(e.clientX-r.left)+"px";tip.style.top=(e.clientY-r.top)+"px";tip.hidden=false});
+  el.addEventListener("pointerleave",()=>{$("tip").hidden=true;hovered=null});
+  new ResizeObserver(()=>{const w=host.clientWidth,h=host.clientHeight;renderer.setSize(w,h);camera.aspect=w/h;camera.updateProjectionMatrix()}).observe(host);
+  requestAnimationFrame(loop);
+}
+function visibleSys(s){return s!=="hormones"||V.DATA[cur].p.sex==="F"}
+function applyPatient(){if(organs.hormones)organs.hormones[0].visible=V.DATA[cur].p.sex==="F";highlight()}
+function meshesOf(k){const out=[];(organs[k]||[]).forEach(o=>o.traverse(m=>{if(m.isMesh)out.push(m)}));return out}
+function highlight(){
+  const S=V.DATA[cur].S;
+  ORDER.forEach(k=>meshesOf(k).forEach(m=>{const on=!sel||sel===k;m.material.opacity=on?1:.18;m.material.depthWrite=on}));
+}
+const FOCUS={heart:[.03,1.3,.04],vessels:[0,1.05,0],metabolic:[.0,1.13,.02],sleep:[0,1.69,0],hormones:[0,.945,.01],activity:[0,.75,0],body:[0,1.0,0]};
+function focus(k){
+  if(!GL_OK)return;const t=k?V3(...FOCUS[k]):V3(0,1.0,0),dist=k?SYS[k].dist:3.6;
+  const dir=new T.Vector3().subVectors(camera.position,controls.target).normalize();if(!k)dir.set(0,.03,1).normalize();
+  tween={t0:performance.now(),from:{p:camera.position.clone(),t:controls.target.clone()},to:{t,p:t.clone().add(dir.multiplyScalar(dist))}};
+}
+const beat=ph=>Math.exp(-(((ph-.08)/.05)**2))+.55*Math.exp(-(((ph-.3)/.06)**2));
+function loop(){
+  const dt=Math.min(.05,clock.getDelta()),t=clock.elapsedTime,{S,D}=V.DATA[cur];
+  const hr=S.heart.tiles[0].recent||65,ph=(t*hr/60)%1,b=beat(ph);
+  if(heartG)heartG.scale.setScalar(1+.075*b);
+  arteryMats.forEach(m=>m.emissiveIntensity=.18+(sel==="vessels"?.5:.2)*b);
+  // status glow when nothing selected
+  const g=.5+.5*Math.sin(t*2.2);
+  ORDER.forEach(k=>{if(k==="vessels")return;const bad=S[k].status==="change";meshesOf(k).forEach(m=>{m.material.emissiveIntensity=sel===k?.55+.25*g:(!sel&&bad?.2+.45*g:.15)})});
+  // flow speed scales with heart rate; arteries a bit faster than veins
+  const sp=.18*hr/65;
+  flow.forEach(f=>{const a=f.pts.geometry.attributes.position;f.off.forEach((o,i)=>{const u=(o+t*sp*(f.isArt?1:.7)/f.len*.4)%1;const p=f.c.getPointAt(u);a.setXYZ(i,p.x,p.y,p.z)});a.needsUpdate=true;
+    f.pts.material.opacity=!sel||sel==="vessels"||sel==="heart"?1:.15});
+  if(tween){const k=Math.min(1,(performance.now()-tween.t0)/900),e=1-Math.pow(1-k,3);
+    camera.position.lerpVectors(tween.from.p,tween.to.p,e);controls.target.lerpVectors(tween.from.t,tween.to.t,e);if(k>=1)tween=null}
+  if(!sel&&!tween&&!hovered)body.rotation.y+=dt*.12;else body.rotation.y+=(0-body.rotation.y)*Math.min(1,dt*3);
+  controls.update();renderer.render(scene,camera);
+  if(detail.on)detailFrame(dt,t,hr,b);
+  requestAnimationFrame(loop);
+}
+
+/* ---------- detail 3D viewer in the panel ---------- */
+const detail={on:false};
+function mountDetail(k){
+  const host=$("detail");if(!host)return;
+  if(!detail.r){detail.r=new T.WebGLRenderer({antialias:true,alpha:true});detail.r.setPixelRatio(Math.min(2,window.devicePixelRatio||1));
+    detail.scene=new T.Scene();detail.cam=new T.PerspectiveCamera(32,1,.01,20);detail.cam.position.set(0,0,2.4);
+    detail.scene.add(new T.HemisphereLight(0xdff7f5,0x0a1315,1));const l=new T.DirectionalLight(0xffffff,1);l.position.set(1,2,2);detail.scene.add(l);
+    detail.root=new T.Group();detail.scene.add(detail.root);
+    let drag=null;const el=detail.r.domElement;
+    el.addEventListener("pointerdown",e=>{drag={x:e.clientX,y:e.clientY,ry:detail.root.rotation.y,rx:detail.root.rotation.x};el.setPointerCapture(e.pointerId)});
+    el.addEventListener("pointermove",e=>{if(!drag)return;detail.root.rotation.y=drag.ry+(e.clientX-drag.x)*.012;detail.root.rotation.x=Math.max(-1.2,Math.min(1.2,drag.rx+(e.clientY-drag.y)*.012));detail.user=performance.now()});
+    el.addEventListener("pointerup",()=>{drag=null});}
+  host.prepend(detail.r.domElement);
+  const w=host.clientWidth,h=host.clientHeight;detail.r.setSize(w,h);detail.cam.aspect=w/h;detail.cam.updateProjectionMatrix();
+  while(detail.root.children.length)detail.root.remove(detail.root.children[0]);detail.root.rotation.set(0,0,0);
+  detail.k=k;detail.artery=null;
+  if(k==="vessels")buildArtery();
+  else{const src=organs[k];if(!src)return;const g=new T.Group();src.forEach(o=>{const c=o.clone(true);c.traverse(m=>{if(m.isMesh){m.material=m.material.clone();m.material.opacity=1;m.material.depthWrite=true}});g.add(c)});
+    const box=new T.Box3().setFromObject(g),cen=box.getCenter(new T.Vector3()),size=box.getSize(new T.Vector3()).length();g.position.sub(cen);const holder=new T.Group();holder.add(g);detail.base=1.25/size;holder.scale.setScalar(detail.base);detail.root.add(holder);detail.organ=holder;
+    if(k==="heart")detail.heart=g.children[0];else detail.heart=null}
+  detail.on=true;detailRead();
+}
+function unmountDetail(){detail.on=false}
+function buildArtery(){
+  const grp=new T.Group();
+  const wall=new T.Mesh(new T.CylinderGeometry(.32,.32,1.9,48,1,true),new T.MeshStandardMaterial({color:"#F2B3A8",roughness:.5,transparent:true,opacity:.35,side:T.DoubleSide,depthWrite:false}));
+  const inner=new T.Mesh(new T.CylinderGeometry(.26,.26,1.9,48,1,true),new T.MeshStandardMaterial({color:"#C93B3B",emissive:new T.Color("#C93B3B"),emissiveIntensity:.25,transparent:true,opacity:.55,side:T.DoubleSide,depthWrite:false}));
+  const ringG=new T.RingGeometry(.26,.32,48);const ring=new T.Mesh(ringG,new T.MeshStandardMaterial({color:"#F2B3A8",side:T.DoubleSide}));ring.position.y=.95;ring.rotation.x=Math.PI/2;
+  grp.add(wall,inner,ring);grp.rotation.set(.35,0,Math.PI/2.4);
+  // red blood cells
+  const cells=[];const cg=new T.TorusGeometry(.035,.018,8,16);const cm=new T.MeshStandardMaterial({color:"#E04848",emissive:new T.Color("#7a1010"),emissiveIntensity:.4});
+  for(let i=0;i<46;i++){const c=new T.Mesh(cg,cm);const a=Math.random()*Math.PI*2,rr=Math.random()*.2;c.userData={a,rr,y:Math.random()*1.9-.95,spin:Math.random()*3};c.rotation.set(Math.random()*3,Math.random()*3,0);grp.add(c);cells.push(c)}
+  detail.root.add(grp);detail.artery={wall,inner,ring,cells,grp};
+}
+function detailRead(){
+  const {S,D,p}=V.DATA[cur],k=detail.k,el=$("dread");if(!el)return;
+  const hr=Math.round(S.heart.tiles[0].recent);
+  if(k==="vessels"&&S.vessels.tiles.length){const sys=S.vessels.tiles[0].recent,dia=V.mean(D.dia.slice(-90));
+    el.innerHTML=`<span style="color:#F29A6B">${Math.round(sys)}/${Math.round(dia)} mmHg</span><br>${hr} bpm<br><span class="muted">usual ${Math.round(S.vessels.tiles[0].usual)} top</span>`}
+  else if(k==="vessels")el.innerHTML=`${hr} bpm<br><span class="muted">no BP cuff</span>`;
+  else if(k==="heart")el.innerHTML=`<span style="color:#F29A6B">${hr} bpm</span><br>HRV ${Math.round(S.heart.tiles[1].recent)} ms`;
+  else if(k==="metabolic"&&S.metabolic.tiles.length)el.innerHTML=`<span style="color:#E8B85A">${S.metabolic.tiles[0].recent.toFixed(1)} mmol/L</span><br>${Math.round(S.metabolic.tiles[1].recent)}% in range`;
+  else if(k==="sleep")el.innerHTML=`<span style="color:#C9A3F2">${S.sleep.tiles[0].recent.toFixed(1)} h</span><br>±${S.sleep.tiles[1].recent.toFixed(1)} h bedtime`;
+  else if(k==="hormones"&&S.hormones.tiles.length)el.innerHTML=`<span style="color:#E58AC0">${Math.round(S.hormones.tiles[0].recent)} day cycles</span><br>${Math.round(S.hormones.tiles[1].recent)}% ovulation`;
+  else el.innerHTML="";
+}
+function detailFrame(dt,t,hr,b){
+  if(!detail.r||!document.body.contains(detail.r.domElement)){detail.on=false;return}
+  if(!detail.user||performance.now()-detail.user>2500)detail.root.rotation.y+=dt*.35;
+  const {S}=V.DATA[cur];
+  if(detail.k==="heart"&&detail.organ)detail.organ.scale.setScalar(detail.base*(1+.09*b));
+  if(detail.artery){const A=detail.artery,st=S.vessels.tiles.length?S.vessels.tiles[0].recent:118;
+    const amp=.04+Math.max(0,st-110)*.0028;const s=1+amp*b;A.wall.scale.set(s,1,s);A.inner.scale.set(s,1,s);A.ring.scale.set(s,s,1);
+    const heat=Math.max(0,Math.min(1,(st-112)/30));A.wall.material.color.setRGB(.95,.7-.35*heat,.66-.4*heat);
+    const v=.35*hr/65;A.cells.forEach(c=>{c.userData.y+=dt*v*(1+.6*b);if(c.userData.y>.95)c.userData.y=-.95;c.position.set(Math.cos(c.userData.a)*c.userData.rr,c.userData.y,Math.sin(c.userData.a)*c.userData.rr);c.rotation.x+=dt*c.userData.spin})}
+  detail.r.render(detail.scene,detail.cam);
+}
+renderAll();
+})();
+</script>
+</body>
+</html>

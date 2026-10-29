@@ -1,0 +1,676 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>VitaLens My Health</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lexend:wght@400;500;600&family=Atkinson+Hyperlegible:wght@400;700&family=Noto+Sans+Devanagari:wght@400;600&family=Noto+Sans+Gujarati:wght@400;600&display=swap">
+<style>
+/* Layout: one calm column read top to bottom: language → greeting → what changed → one chart with "what is this" → meaning → questions */
+:root{
+  --bg:#F2F6F6; --card:#FFFFFF; --ink:#16282B; --muted:#56696D; --line:#D9E3E4;
+  --accent:#137B7A; --accent-soft:#DDF0EE; --learn:#5B4BA8; --learn-soft:#ECE9F8;
+  --up:#B4502A; --up-soft:#FBE9E1; --ok:#2F7A4B; --ok-soft:#E2F2E7; --season:#5F7FA6; --season-soft:#E5ECF5;
+  --head:"Lexend", "Noto Sans Devanagari", "Noto Sans Gujarati", "Trebuchet MS", system-ui, sans-serif;
+  --body:"Atkinson Hyperlegible", "Noto Sans Devanagari", "Noto Sans Gujarati", system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0F1A1C; --card:#172427; --ink:#E4EEEF; --muted:#9AB0B3; --line:#2A3B3E;
+  --accent:#5CC4C0; --accent-soft:#173B3B; --learn:#B7AAF0; --learn-soft:#272240;
+  --up:#F0956E; --up-soft:#3E2419; --ok:#7CCB97; --ok-soft:#183324; --season:#93AFD4; --season-soft:#1E2A3A; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0F1A1C; --card:#172427; --ink:#E4EEEF; --muted:#9AB0B3; --line:#2A3B3E;
+  --accent:#5CC4C0; --accent-soft:#173B3B; --learn:#B7AAF0; --learn-soft:#272240;
+  --up:#F0956E; --up-soft:#3E2419; --ok:#7CCB97; --ok-soft:#183324; --season:#93AFD4; --season-soft:#1E2A3A; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:17px;line-height:1.6}
+.page{max-width:760px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:20px 40px;display:flex;flex-direction:column;gap:20px}
+h1,h2{font-family:var(--head);font-weight:600;margin:0;text-wrap:balance;letter-spacing:-.005em}
+h1{font-size:clamp(25px,5vw,31px);line-height:1.25}
+h2{font-size:20px;line-height:1.3}
+p{margin:0}
+button{font:inherit;color:inherit;cursor:pointer}
+button:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+
+.top{display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between}
+.logo{font-family:"Lexend",system-ui,sans-serif;font-weight:600;font-size:20px;display:flex;align-items:center;gap:8px}
+.logo b{color:var(--accent);font-weight:600}
+.badge{font-family:var(--body);font-size:12px;font-weight:700;color:var(--muted);border:1px solid var(--line);border-radius:999px;padding:2px 9px}
+.people{display:flex;gap:8px;flex-wrap:wrap}
+.person{display:flex;align-items:center;gap:8px;border:2px solid var(--line);background:var(--card);border-radius:999px;padding:5px 14px 5px 5px;font-size:15px}
+.person i{font-style:normal;width:30px;height:30px;border-radius:50%;display:grid;place-items:center;background:var(--accent-soft);color:var(--accent);font-family:"Lexend",system-ui,sans-serif;font-weight:600;font-size:14px}
+.person[aria-pressed="true"]{border-color:var(--accent)}
+
+.langbar{display:flex;flex-wrap:wrap;align-items:center;gap:8px 10px;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:10px 12px}
+.langbar .lbl{font-size:14px;color:var(--muted);font-weight:700;display:flex;align-items:center;gap:6px}
+.langs{display:flex;flex-wrap:wrap;gap:6px}
+.lang{border:2px solid var(--line);background:var(--bg);border-radius:10px;padding:4px 12px;font-size:16px}
+.lang[aria-pressed="true"]{border-color:var(--accent);background:var(--accent-soft);color:var(--ink);font-weight:700}
+.speak{margin-left:auto;display:flex;align-items:center;gap:8px;border:0;background:var(--accent);color:var(--card);border-radius:10px;padding:7px 14px;font-weight:700;font-size:15px}
+.speak svg{width:18px;height:18px}
+.speak-msg{font-size:13px;color:var(--muted);width:100%}
+
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:22px}
+.hello{display:flex;flex-direction:column;gap:10px}
+.hello .sub{color:var(--muted);font-size:16px}
+
+.measures{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:12px}
+.m{position:relative;background:var(--card);border:2px solid var(--line);border-radius:14px}
+.m.on{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+.m:hover{border-color:var(--accent)}
+.m .pick{width:100%;border:0;background:transparent;text-align:left;padding:16px 50px 16px 16px;display:flex;flex-direction:column;gap:6px;border-radius:12px}
+.m .name{font-size:15px;color:var(--muted);font-weight:700;line-height:1.35}
+.m .now{font-family:"Lexend",system-ui,sans-serif;font-size:28px;font-weight:500;font-variant-numeric:tabular-nums;line-height:1.15}
+.m .now small{font-family:var(--body);font-size:15px;color:var(--muted);font-weight:400}
+.m .usual{font-size:14px;color:var(--muted)}
+.m .q{position:absolute;top:10px;right:10px;width:32px;height:32px;border-radius:50%;border:2px solid var(--learn);background:var(--learn-soft);color:var(--learn);font-weight:700;font-size:16px;display:grid;place-items:center;line-height:1}
+.pill{align-self:flex-start;font-size:14px;font-weight:700;border-radius:999px;padding:3px 11px}
+.pill.change{background:var(--up-soft);color:var(--up)}
+.pill.same{background:var(--ok-soft);color:var(--ok)}
+.hint{font-size:14px;color:var(--muted);margin-top:8px}
+
+.chart-card{display:flex;flex-direction:column;gap:12px}
+.chart-card .say{font-size:18px;font-weight:700}
+.learn{background:var(--learn-soft);border-radius:12px;padding:14px 16px;display:flex;flex-direction:column;gap:4px}
+.learn .t{font-weight:700;color:var(--learn);display:flex;align-items:center;gap:8px}
+.learn .t i{font-style:normal;width:24px;height:24px;border-radius:50%;background:var(--learn);color:var(--learn-soft);display:grid;place-items:center;font-size:14px}
+@media (prefers-reduced-motion:no-preference){.learn.flash{animation:flash .8s ease}@keyframes flash{0%{box-shadow:0 0 0 0 var(--learn)}100%{box-shadow:0 0 0 10px transparent}}}
+#chart svg{display:block;width:100%;height:auto}
+.key{display:flex;flex-wrap:wrap;gap:16px;font-size:14px;color:var(--muted)}
+.key span{display:inline-flex;align-items:center;gap:6px}
+.key i{display:inline-block;width:16px;height:10px;border-radius:3px}
+
+.why{background:var(--accent-soft);border:0}
+.why p+p{margin-top:10px}
+.word{margin-top:14px;background:var(--card);border-radius:12px;padding:12px 14px;font-size:16px}
+.word b{color:var(--learn)}
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}
+.chip{border:2px solid var(--line);background:var(--card);border-radius:999px;padding:6px 14px;font-size:15px;text-align:left}
+.chip:hover{border-color:var(--accent)}
+.chip[aria-pressed="true"]{border-color:var(--accent);background:var(--accent);color:var(--card);font-weight:700}
+.chip[aria-pressed="true"]::before{content:"✓ "}
+.docnote{margin-top:12px;background:var(--bg);border:1px dashed var(--line);border-radius:12px;padding:12px 14px;font-size:16px}
+.docnote b{display:block;font-size:14px;color:var(--muted);margin-bottom:2px}
+.season-tag{display:inline-flex;align-items:center;gap:6px;background:var(--season-soft);color:var(--season);font-weight:700;font-size:14px;border-radius:999px;padding:3px 11px;margin-top:4px;align-self:flex-start}
+.pill.season{background:var(--season-soft);color:var(--season)}
+.pill.dip{background:var(--up-soft);color:var(--up)}
+.asks{list-style:none;margin:12px 0 0;padding:0;display:flex;flex-direction:column;gap:10px}
+.asks label{display:flex;gap:12px;align-items:flex-start;cursor:pointer}
+.asks input{width:22px;height:22px;margin:3px 0 0;accent-color:var(--accent);flex:none}
+.muted{color:var(--muted);font-size:15px}
+.note{font-size:14px;color:var(--muted);border-left:3px solid var(--line);padding-left:12px}
+footer{font-size:13px;color:var(--muted);text-align:center}
+</style>
+</head>
+<body>
+
+<div class="page">
+  <div class="top">
+    <div class="logo">Vita<b>Lens</b> <span class="badge" id="badge"></span></div>
+    <div class="people" id="people" role="group" aria-label="Sample patients"></div>
+  </div>
+
+  <div class="langbar">
+    <span class="lbl" id="lang-lbl"></span>
+    <div class="langs" id="langs" role="group" aria-label="Language"></div>
+    <button type="button" class="speak" id="speak"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 5 6 9H3v6h3l5 4V5z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/><path d="M18.5 5.5a9 9 0 0 1 0 13"/></svg><span id="speak-txt"></span></button>
+    <p class="speak-msg" id="speak-msg" hidden></p>
+  </div>
+
+  <section class="card hello">
+    <h1 id="hello"></h1>
+    <p class="sub" id="hello-sub"></p>
+  </section>
+
+  <section>
+    <div class="measures" id="measures"></div>
+    <p class="hint" id="hint"></p>
+  </section>
+
+  <section class="card chart-card" id="chart-card">
+    <h2 id="chart-title"></h2>
+    <p class="say" id="chart-say"></p>
+    <div class="learn" id="learn"><span class="t"><i>?</i><span id="learn-t"></span></span><span id="learn-b"></span></div>
+    <div id="chart"></div>
+    <div class="key">
+      <span><i style="background:var(--accent-soft);border:1px solid var(--accent)"></i><span id="k1"></span></span>
+      <span><i style="background:var(--accent)"></i><span id="k2"></span></span>
+      <span><i style="background:var(--up)"></i><span id="k3"></span></span>
+      <span><i style="background:var(--season)"></i><span id="k4"></span></span>
+    </div>
+  </section>
+
+  <section class="card" id="ev-card">
+    <h2 id="ev-t"></h2>
+    <p id="ev-q" style="margin-top:8px"></p>
+    <div class="chips" id="chips" role="group"></div>
+    <p class="muted" id="ev-note" style="margin-top:12px"></p>
+  </section>
+
+  <section class="card" id="obs-card">
+    <h2 id="obs-t"></h2>
+    <p id="obs-q" style="margin-top:8px"></p>
+    <div class="chips" id="obs-chips" role="group"></div>
+    <p class="muted" id="obs-note" style="margin-top:12px"></p>
+  </section>
+
+  <section class="card why">
+    <h2 id="why-t"></h2>
+    <div id="why" style="margin-top:10px"></div>
+  </section>
+
+  <section class="card">
+    <h2 id="asks-t"></h2>
+    <div class="docnote" id="docnote"></div>
+    <p class="muted" id="asks-h" style="margin-top:12px"></p>
+    <ul class="asks" id="asks"></ul>
+  </section>
+
+  <p class="note" id="note"></p>
+  <footer id="foot"></footer>
+</div>
+
+<script>
+(function(){
+/* ---------------- words for each language ---------------- */
+const L={
+en:{label:"English",locale:"en-CA",speech:"en",
+ months:["January","February","March","April","May","June","July","August","September","October","November","December"],
+ short:["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"],
+ badge:"Prototype · sample data",langLbl:"Your language",read:"Read to me",stop:"Stop",
+ noVoice:"This device has no voice for this language. Try Chrome or Edge, or add a voice in your device settings.",
+ hello:(n,c)=>c?`Hi ${n}. ${c} ${c===1?"thing has":"things have"} changed from your usual.`:`Hi ${n}. Everything looks close to your usual.`,
+ sub:c=>`We compared your last 2 months with your first 3 months (October to December 2025). `+(c?"Changes worth talking about are in orange.":"Nothing changed enough to point out."),
+ usually:v=>`Usually ${v}`,up:"↑ Higher than usual",down:"↓ Lower than usual",same:"✓ Your usual",
+ hint:"Tap a card to see it on the chart. Tap ? to learn what it means.",
+ chartTitle:n=>`${n} over the year`,
+ say:(n,m,a,up)=>`${n}: about ${a} ${up?"more":"less"} than usual since ${m}.`,
+ sayPct:(n,m,a,up)=>`${n}: about ${a} ${up?"more":"fewer"} than usual since ${m}.`,
+ saySame:n=>`${n}: inside your usual range all year.`,
+ q:{weight:"What does weight tell me?",sleep:"What does sleep tell me?",steps:"What are daily steps?",hr:"What is resting heart rate?",bp:"What is blood pressure?"},
+ k:["Your usual range","Your monthly average","Outside your usual"],
+ obsT:"Do you fast or observe any of these?",
+ obsQ:m=>`Some of your readings dipped for a short time around ${m}, then came back. Fasting and religious holidays can change sleep and weight. Tell us what you observe and VitaLens will take it into account.`,
+ obsQ2:"Fasting and religious holidays can change sleep and weight. VitaLens takes what you observe into account.",
+ obsNote:"You can change this at any time. VitaLens never guesses this from your name.",
+ obs:{ramadan:"Ramadan",lent:"Lent",navratri:"Navratri",none:"None of these"},
+ dipPill:"↺ Short dip, now back to usual",
+ sayDip:(n,m)=>`${n}: dipped for a short time around ${m}, then came back to your usual. Did anything happen then? You can tell us below.`,
+ dipNote:m=>` Some readings also dipped for a short time around ${m}. See the question below.`,
+ docDip:(ms,m)=>`Short dips around ${m}: ${ms}. They came back on their own.`,
+ evT:"What was happening then?",
+ evQ:m=>`Your readings started to change around ${m}. Did anything happen in your life around then? Tap all that fit.`,
+ evNote:"Your answers go into the note for your doctor. They help explain the change. They are not a diagnosis.",
+ ev:{work:"New job or work stress",travel:"Travel",sick:"Illness or injury",meds:"Started, stopped or missed a medicine",family:"Family event (wedding, baby, loss)",move:"Moved home",fasting:"Fasting or diet change",none:"Nothing I can think of"},
+ docT:"Note for your doctor",doc:(m,ms,ev)=>`Around ${m}: ${ms} changed. You said: ${ev}.`,docNone:(m,ms)=>`Around ${m}: ${ms} changed. Tap what was happening above to add your side of the story.`,docSeason:s=>`Seasonal changes this year: ${s}. These came back to normal, so they were not flagged.`,
+ chartEv:"Your note",and:" and ",lower:true,
+ seasons:{lent:"Lent",navratri:"Navratri",winter:"Winter",ramadan:"Ramadan",holidays:"Holidays"},
+ seasonNote:n=>` Some dips earlier this year happened during ${n}. That is normal, so we did not flag them.`,
+ saySeason:(n,s)=>`${n}: changed during ${s}, then came back to your usual. This is normal for that time of year, so we did not flag it.`,
+ seasonPill:"~ Normal for the season",k4:"Normal for the season",
+ whyT:"What this could mean",wordT:"What does this word mean?",asksT:"Questions to ask your doctor",asksH:"Tick the ones you want to ask.",
+ note:"VitaLens does not diagnose anything. It compares your recent readings with your own usual levels so you and your doctor can talk about them.",
+ foot:"VitaLens prototype v0.1 · Team VitaLens, COMP 8967 · People and readings are made-up samples",
+ m:{weight:["Weight","kg","How heavy your body is. It is normal for it to move a little from day to day. A slow rise over many months is worth talking about."],
+    sleep:["Sleep","hours","How many hours you sleep each night, measured by your watch or band. Most adults need about 7 to 9 hours."],
+    steps:["Daily steps","steps","How many steps you walk in a day, counted by your phone or watch. It shows how much you move around."],
+    hr:["Resting heart rate","beats per minute","How many times your heart beats in one minute while you sit calmly. A lower number usually means your heart is working easily."],
+    bp:["Blood pressure (top number)","mmHg","How hard your blood pushes on the tubes that carry it around your body. Think of water in a garden hose: if it pushes too hard for a long time, the hose wears out. The top number is the push when your heart beats."]},
+ p:[{rec:"Your blood sugar test (HbA1c) in September 2025 was 6.1%. That is a little above normal.",
+     mean:"Your weight went up while your sleep and walking went down. These can affect blood sugar, so it is a good idea to show them to your doctor.",
+     word:["HbA1c","A blood test that shows your average blood sugar over the last 2 to 3 months. Below 5.7% is normal."],
+     asks:["Should I do my blood sugar test (HbA1c) again?","Could my sleep or walking be affecting my health?","What small changes would help me most?"]},
+    {rec:"Your record says you have high blood pressure and take a medicine for it every day. You last picked up a refill from the pharmacy in April 2026.",
+     mean:"Your blood pressure and heart rate went up after that last refill. Your doctor can check if your medicine or routine needs a change.",
+     word:["Refill","Getting more of your medicine from the pharmacy when it runs out."],
+     asks:["Am I taking my blood pressure medicine the right way?","Do I need a refill or a different dose?","How often should I check my blood pressure at home?"]},
+    {rec:"Your last check-up in September 2025 was normal.",
+     mean:"All your readings stayed close to your usual this year. Keep doing what you are doing.",
+     word:["Check-up","A regular visit to your doctor to make sure you are healthy, even when you feel fine."],
+     asks:["Is there anything I should keep an eye on?","When should I have my next check-up?"]},
+    {rec:"Your last check-up in August 2025 was normal.",told:" You told us you fast during Ramadan.",meanUnknown:"You walked less in winter, which is normal for that time of year. Your sleep and weight also dipped for a short time around March 2026, then came back. Right now everything is close to your usual.",asksUnknown:["Should I worry about short dips in my sleep or weight?","How can I stay active during the winter?"],
+     mean:"You walked less in winter, and your sleep and weight dipped a little during Ramadan. That is normal for those times of year, and everything came back afterwards. Right now everything is close to your usual.",
+     word:["Seasonal change","A change that happens at the same time every year, like walking less in winter. It is usually not a health problem."],
+     asks:["What can I do to stay healthy while I fast?","How can I stay active during the winter?"]}]},
+
+hi:{label:"हिन्दी",locale:"hi-IN",speech:"hi",
+ months:["जनवरी","फ़रवरी","मार्च","अप्रैल","मई","जून","जुलाई","अगस्त","सितंबर","अक्टूबर","नवंबर","दिसंबर"],
+ badge:"प्रोटोटाइप · नमूना डेटा",langLbl:"आपकी भाषा",read:"सुनें",stop:"रोकें",
+ noVoice:"इस डिवाइस पर इस भाषा की आवाज़ नहीं है। Chrome या Edge में खोलें, या डिवाइस की सेटिंग में आवाज़ जोड़ें।",
+ hello:(n,c)=>c?`नमस्ते ${n}। ${c===1?"1 चीज़ आपके सामान्य से बदली है।":"आपकी "+c+" चीज़ें आपके सामान्य से बदली हैं।"}`:`नमस्ते ${n}। सब कुछ आपके सामान्य के आसपास है।`,
+ sub:c=>`हमने आपके पिछले 2 महीनों की तुलना आपके पहले 3 महीनों (अक्टूबर से दिसंबर 2025) से की। `+(c?"जिन बदलावों पर बात करनी चाहिए, वे नारंगी रंग में हैं।":"कोई बड़ा बदलाव नहीं मिला।"),
+ usually:v=>`आमतौर पर ${v}`,up:"↑ सामान्य से ज़्यादा",down:"↓ सामान्य से कम",same:"✓ आपका सामान्य",
+ hint:"चार्ट पर देखने के लिए किसी कार्ड पर टैप करें। मतलब जानने के लिए ? पर टैप करें।",
+ chartTitle:n=>`साल भर में: ${n}`,
+ say:(n,m,a,up)=>`${n}: ${m} से आपके सामान्य से लगभग ${a} ${up?"ज़्यादा":"कम"}।`,
+ saySame:n=>`${n}: पूरे साल आपके सामान्य दायरे के अंदर।`,
+ q:{weight:"वज़न से क्या पता चलता है?",sleep:"नींद से क्या पता चलता है?",steps:"रोज़ के कदम क्या हैं?",hr:"आराम के समय दिल की धड़कन क्या है?",bp:"ब्लड प्रेशर क्या है?"},
+ k:["आपका सामान्य दायरा","आपका महीने का औसत","सामान्य से बाहर"],
+ obsT:"क्या आप इनमें से कोई उपवास या त्योहार मानते हैं?",
+ obsQ:m=>`आपकी कुछ रीडिंग ${m} के आसपास थोड़े समय के लिए कम हुई, फिर ठीक हो गई। उपवास और धार्मिक त्योहारों से नींद और वज़न बदल सकते हैं। आप क्या मानते हैं, यह बताएँ, तो VitaLens इसे ध्यान में रखेगा।`,
+ obsQ2:"उपवास और धार्मिक त्योहारों से नींद और वज़न बदल सकते हैं। आप जो मानते हैं, VitaLens उसे ध्यान में रखता है।",
+ obsNote:"आप इसे कभी भी बदल सकते हैं। VitaLens आपके नाम से इसका अंदाज़ा कभी नहीं लगाता।",
+ obs:{ramadan:"रमज़ान",lent:"लेंट (ईसाई उपवास)",navratri:"नवरात्रि",none:"इनमें से कोई नहीं"},
+ dipPill:"↺ थोड़ी देर बदला, अब सामान्य",
+ sayDip:(n,m)=>`${n}: ${m} के आसपास थोड़े समय के लिए बदलाव आया, फिर सब आपके सामान्य पर लौट आया। क्या उस समय कुछ हुआ था? नीचे बता सकते हैं।`,
+ dipNote:m=>` कुछ रीडिंग ${m} के आसपास थोड़े समय के लिए कम भी हुई। नीचे दिया सवाल देखें।`,
+ docDip:(ms,m)=>`${m} के आसपास थोड़े समय के लिए बदलाव: ${ms}। ये अपने-आप ठीक हो गए।`,
+ evT:"उस समय क्या चल रहा था?",
+ evQ:m=>`आपकी रीडिंग ${m} के आसपास बदलनी शुरू हुई। क्या उस समय आपकी ज़िंदगी में कुछ हुआ था? जो भी सही लगे, उन सब पर टैप करें।`,
+ evNote:"आपके जवाब डॉक्टर के नोट में जुड़ जाते हैं। इनसे बदलाव समझने में मदद मिलती है। यह बीमारी की पहचान नहीं है।",
+ ev:{work:"नई नौकरी या काम का तनाव",travel:"यात्रा",sick:"बीमारी या चोट",meds:"दवा शुरू की, बंद की या छूट गई",family:"परिवार में कोई घटना (शादी, बच्चा, किसी का गुज़र जाना)",move:"घर बदला",fasting:"उपवास या खाने में बदलाव",none:"कुछ याद नहीं"},
+ docT:"डॉक्टर के लिए नोट",doc:(m,ms,ev)=>`${m} के आसपास: ${ms} में बदलाव आया। आपने बताया: ${ev}।`,docNone:(m,ms)=>`${m} के आसपास: ${ms} में बदलाव आया। अपनी बात जोड़ने के लिए ऊपर टैप करें कि उस समय क्या चल रहा था।`,docSeason:s=>`इस साल मौसम से जुड़े बदलाव: ${s}। ये फिर सामान्य हो गए, इसलिए इन पर निशान नहीं लगाया गया।`,
+ chartEv:"आपका नोट",and:" और ",
+ seasons:{lent:"लेंट",navratri:"नवरात्रि",winter:"सर्दी",ramadan:"रमज़ान",holidays:"छुट्टियाँ"},
+ seasonNote:n=>` इस साल की शुरुआत में कुछ गिरावट ${n} के समय थी। यह सामान्य है, इसलिए हमने उस पर निशान नहीं लगाया।`,
+ saySeason:(n,s)=>`${n}: ${s} के दौरान बदलाव आया, फिर सब आपके सामान्य पर लौट आया। यह साल के इस समय के लिए सामान्य है, इसलिए हमने इस पर निशान नहीं लगाया।`,
+ seasonPill:"~ मौसम के हिसाब से सामान्य",k4:"मौसम के हिसाब से सामान्य",
+ whyT:"इसका क्या मतलब हो सकता है",wordT:"इस शब्द का मतलब",asksT:"डॉक्टर से पूछने के लिए सवाल",asksH:"जो सवाल पूछने हैं, उन पर निशान लगाएँ।",
+ note:"VitaLens कोई बीमारी नहीं बताता। यह आपकी हाल की रीडिंग की तुलना आपके अपने सामान्य से करता है, ताकि आप और आपके डॉक्टर इस पर बात कर सकें।",
+ foot:"VitaLens प्रोटोटाइप v0.1 · Team VitaLens, COMP 8967 · लोग और रीडिंग नमूने हैं, असली नहीं",
+ m:{weight:["वज़न","किलो","आपके शरीर का भार। रोज़ थोड़ा ऊपर-नीचे होना आम बात है। अगर कई महीनों तक धीरे-धीरे बढ़ता रहे, तो डॉक्टर से बात करना अच्छा है।"],
+    sleep:["नींद","घंटे","आप हर रात कितने घंटे सोते हैं, जो आपकी घड़ी या बैंड मापता है। ज़्यादातर बड़ों को 7 से 9 घंटे की नींद चाहिए।"],
+    steps:["रोज़ के कदम","कदम","आप दिन में कितने कदम चलते हैं, जो आपका फ़ोन या घड़ी गिनता है। इससे पता चलता है कि आप कितना चलते-फिरते हैं।"],
+    hr:["आराम के समय दिल की धड़कन","धड़कन/मिनट","जब आप आराम से बैठे हों, तब आपका दिल एक मिनट में कितनी बार धड़कता है। कम नंबर का मतलब आमतौर पर यह है कि दिल आराम से काम कर रहा है।"],
+    bp:["ब्लड प्रेशर (ऊपर वाला नंबर)","mmHg","खून आपकी नसों पर कितने ज़ोर से दबाव डालता है। बगीचे के पाइप में पानी की तरह सोचिए: अगर बहुत समय तक ज़ोर ज़्यादा रहे, तो पाइप खराब होने लगता है। ऊपर वाला नंबर वह ज़ोर है जब दिल धड़कता है।"]},
+ p:[{rec:"सितंबर 2025 में आपकी ब्लड शुगर जाँच (HbA1c) 6.1% थी। यह सामान्य से थोड़ी ज़्यादा है।",
+     mean:"आपका वज़न बढ़ा है, और नींद और चलना कम हुआ है। इनका असर ब्लड शुगर पर पड़ सकता है, इसलिए यह अपने डॉक्टर को दिखाना अच्छा रहेगा।",
+     word:["HbA1c","खून की एक जाँच जो पिछले 2 से 3 महीनों की आपकी औसत ब्लड शुगर बताती है। 5.7% से कम सामान्य है।"],
+     asks:["क्या मुझे ब्लड शुगर जाँच (HbA1c) फिर से करवानी चाहिए?","क्या मेरी नींद या कम चलने का असर मेरी सेहत पर पड़ रहा है?","कौन-से छोटे बदलाव मेरी सबसे ज़्यादा मदद करेंगे?"]},
+    {rec:"आपके रिकॉर्ड के अनुसार आपको हाई ब्लड प्रेशर है और आप इसके लिए रोज़ दवा लेते हैं। आपने फ़ार्मेसी से आख़िरी बार दवा (रिफ़िल) अप्रैल 2026 में ली थी।",
+     mean:"उसके बाद आपका ब्लड प्रेशर और दिल की धड़कन बढ़ी है। आपके डॉक्टर देख सकते हैं कि दवा या दिनचर्या में बदलाव की ज़रूरत है या नहीं।",
+     word:["रिफ़िल","दवा ख़त्म होने पर फ़ार्मेसी से फिर से दवा लेना।"],
+     asks:["क्या मैं ब्लड प्रेशर की दवा सही तरीके से ले रहा हूँ?","क्या मुझे और दवा या अलग खुराक चाहिए?","मुझे घर पर कितनी बार ब्लड प्रेशर जाँचना चाहिए?"]},
+    {rec:"सितंबर 2025 में आपका आख़िरी चेक-अप सामान्य था।",
+     mean:"इस साल आपकी सभी रीडिंग आपके सामान्य के आसपास रहीं। जैसा कर रही हैं, वैसा ही करती रहें।",
+     word:["चेक-अप","डॉक्टर के पास नियमित मुलाक़ात, यह देखने के लिए कि आप स्वस्थ हैं, भले ही आप ठीक महसूस करें।"],
+     asks:["क्या मुझे किसी चीज़ पर ध्यान रखना चाहिए?","मेरा अगला चेक-अप कब होना चाहिए?"]},
+    {rec:"अगस्त 2025 में आपका आख़िरी चेक-अप सामान्य था।",told:" आपने बताया कि आप रमज़ान में रोज़ा रखते हैं।",meanUnknown:"सर्दी में आप कम चले, जो साल के उस समय के लिए सामान्य है। मार्च 2026 के आसपास आपकी नींद और वज़न भी थोड़े समय के लिए कम हुए, फिर ठीक हो गए। अभी सब कुछ आपके सामान्य के आसपास है।",asksUnknown:["क्या मुझे नींद या वज़न में थोड़े समय की गिरावट की चिंता करनी चाहिए?","सर्दियों में मैं ज़्यादा चलता-फिरता कैसे रहूँ?"],
+     mean:"सर्दी में आप कम चले, और रमज़ान में आपकी नींद और वज़न थोड़ा कम हुआ। साल के उस समय के लिए यह सामान्य है, और बाद में सब ठीक हो गया। अभी सब कुछ आपके सामान्य के आसपास है।",
+     word:["मौसमी बदलाव","ऐसा बदलाव जो हर साल एक ही समय पर होता है, जैसे सर्दी में कम चलना। आमतौर पर यह सेहत की समस्या नहीं होती।"],
+     asks:["रोज़े के दौरान स्वस्थ रहने के लिए मुझे क्या करना चाहिए?","सर्दियों में मैं ज़्यादा चलता-फिरता कैसे रहूँ?"]}]},
+
+gu:{label:"ગુજરાતી",locale:"gu-IN",speech:"gu",
+ months:["જાન્યુઆરી","ફેબ્રુઆરી","માર્ચ","એપ્રિલ","મે","જૂન","જુલાઈ","ઓગસ્ટ","સપ્ટેમ્બર","ઓક્ટોબર","નવેમ્બર","ડિસેમ્બર"],
+ badge:"પ્રોટોટાઇપ · નમૂના ડેટા",langLbl:"તમારી ભાષા",read:"સાંભળો",stop:"બંધ કરો",
+ noVoice:"આ ડિવાઇસ પર આ ભાષાનો અવાજ નથી. Chrome કે Edge માં ખોલો, અથવા ડિવાઇસના સેટિંગમાં અવાજ ઉમેરો.",
+ hello:(n,c)=>c?`નમસ્તે ${n}. ${c===1?"1 બાબત તમારા સામાન્ય કરતાં બદલાઈ છે.":"તમારી "+c+" બાબતો તમારા સામાન્ય કરતાં બદલાઈ છે."}`:`નમસ્તે ${n}. બધું તમારા સામાન્યની આસપાસ છે.`,
+ sub:c=>`અમે તમારા છેલ્લા 2 મહિનાની સરખામણી તમારા પહેલા 3 મહિના (ઓક્ટોબર થી ડિસેમ્બર 2025) સાથે કરી. `+(c?"જે ફેરફારો વિશે વાત કરવી જોઈએ, તે નારંગી રંગમાં છે.":"કોઈ મોટો ફેરફાર મળ્યો નથી."),
+ usually:v=>`સામાન્ય રીતે ${v}`,up:"↑ સામાન્ય કરતાં વધારે",down:"↓ સામાન્ય કરતાં ઓછું",same:"✓ તમારું સામાન્ય",
+ hint:"ચાર્ટ પર જોવા માટે કોઈ કાર્ડ પર ટેપ કરો. અર્થ જાણવા માટે ? પર ટેપ કરો.",
+ chartTitle:n=>`આખા વર્ષમાં: ${n}`,
+ say:(n,m,a,up)=>`${n}: ${m} થી તમારા સામાન્ય કરતાં આશરે ${a} ${up?"વધારે":"ઓછું"}.`,
+ saySame:n=>`${n}: આખું વર્ષ તમારી સામાન્ય મર્યાદામાં.`,
+ q:{weight:"વજનથી શું ખબર પડે?",sleep:"ઊંઘથી શું ખબર પડે?",steps:"રોજનાં પગલાં એટલે શું?",hr:"આરામ વખતે હૃદયના ધબકારા એટલે શું?",bp:"બ્લડ પ્રેશર એટલે શું?"},
+ k:["તમારી સામાન્ય મર્યાદા","તમારી મહિનાની સરેરાશ","સામાન્યથી બહાર"],
+ obsT:"શું તમે આમાંથી કોઈ ઉપવાસ કે તહેવાર પાળો છો?",
+ obsQ:m=>`તમારી કેટલીક રીડિંગ ${m} ની આસપાસ થોડા સમય માટે ઘટી, પછી પાછી સામાન્ય થઈ. ઉપવાસ અને ધાર્મિક તહેવારોથી ઊંઘ અને વજન બદલાઈ શકે. તમે શું પાળો છો તે જણાવો, તો VitaLens તેને ધ્યાનમાં રાખશે.`,
+ obsQ2:"ઉપવાસ અને ધાર્મિક તહેવારોથી ઊંઘ અને વજન બદલાઈ શકે. તમે જે પાળો છો, VitaLens તેને ધ્યાનમાં રાખે છે.",
+ obsNote:"તમે આ ગમે ત્યારે બદલી શકો છો. VitaLens તમારા નામ પરથી ક્યારેય આનો અંદાજ લગાવતું નથી.",
+ obs:{ramadan:"રમઝાન",lent:"લેન્ટ (ખ્રિસ્તી ઉપવાસ)",navratri:"નવરાત્રિ",none:"આમાંથી કોઈ નહીં"},
+ dipPill:"↺ થોડો સમય બદલાયું, હવે સામાન્ય",
+ sayDip:(n,m)=>`${n}: ${m} ની આસપાસ થોડા સમય માટે ફેરફાર થયો, પછી બધું તમારા સામાન્ય પર પાછું આવ્યું. શું તે સમયે કંઈ થયું હતું? નીચે જણાવી શકો છો.`,
+ dipNote:m=>` કેટલીક રીડિંગ ${m} ની આસપાસ થોડા સમય માટે ઘટી પણ હતી. નીચેનો પ્રશ્ન જુઓ.`,
+ docDip:(ms,m)=>`${m} ની આસપાસ થોડા સમયના ફેરફાર: ${ms}. આ પોતાની મેળે સામાન્ય થઈ ગયા.`,
+ evT:"તે સમયે શું ચાલી રહ્યું હતું?",
+ evQ:m=>`તમારી રીડિંગ ${m} ની આસપાસ બદલાવા લાગી. શું તે સમયે તમારા જીવનમાં કંઈ થયું હતું? જે બંધબેસે તે બધા પર ટેપ કરો.`,
+ evNote:"તમારા જવાબો ડૉક્ટર માટેની નોંધમાં ઉમેરાય છે. તેનાથી ફેરફાર સમજવામાં મદદ મળે છે. આ કોઈ રોગનું નિદાન નથી.",
+ ev:{work:"નવી નોકરી કે કામનો તણાવ",travel:"મુસાફરી",sick:"બીમારી કે ઈજા",meds:"દવા શરૂ કરી, બંધ કરી કે ચૂકી ગયા",family:"પરિવારમાં કોઈ પ્રસંગ (લગ્ન, બાળક, કોઈનું અવસાન)",move:"ઘર બદલ્યું",fasting:"ઉપવાસ કે ખોરાકમાં ફેરફાર",none:"કંઈ યાદ નથી"},
+ docT:"ડૉક્ટર માટે નોંધ",doc:(m,ms,ev)=>`${m} ની આસપાસ: ${ms} માં ફેરફાર થયો. તમે કહ્યું: ${ev}.`,docNone:(m,ms)=>`${m} ની આસપાસ: ${ms} માં ફેરફાર થયો. તમારી વાત ઉમેરવા માટે ઉપર ટેપ કરો કે તે સમયે શું ચાલી રહ્યું હતું.`,docSeason:s=>`આ વર્ષે ઋતુ પ્રમાણેના ફેરફારો: ${s}. આ પાછા સામાન્ય થઈ ગયા, એટલે તેના પર નિશાની કરી નથી.`,
+ chartEv:"તમારી નોંધ",and:" અને ",
+ seasonsIn:{winter:"શિયાળા"},seasons:{lent:"લેન્ટ",navratri:"નવરાત્રિ",winter:"શિયાળો",ramadan:"રમઝાન",holidays:"રજાઓ"},
+ seasonNote:n=>` આ વર્ષની શરૂઆતમાં થોડો ઘટાડો ${n} દરમિયાન હતો. આ સામાન્ય છે, એટલે અમે તેના પર નિશાની કરી નથી.`,
+ saySeason:(n,s)=>`${n}: ${s} દરમિયાન ફેરફાર થયો, પછી બધું તમારા સામાન્ય પર પાછું આવ્યું. વર્ષના આ સમય માટે આ સામાન્ય છે, એટલે અમે તેના પર નિશાની કરી નથી.`,
+ seasonPill:"~ ઋતુ પ્રમાણે સામાન્ય",k4:"ઋતુ પ્રમાણે સામાન્ય",
+ whyT:"આનો અર્થ શું હોઈ શકે",wordT:"આ શબ્દનો અર્થ",asksT:"ડૉક્ટરને પૂછવાના પ્રશ્નો",asksH:"જે પ્રશ્નો પૂછવા છે તેના પર નિશાની કરો.",
+ note:"VitaLens કોઈ રોગ નક્કી કરતું નથી. તે તમારી તાજેતરની રીડિંગની સરખામણી તમારા પોતાના સામાન્ય સાથે કરે છે, જેથી તમે અને તમારા ડૉક્ટર તેના વિશે વાત કરી શકો.",
+ foot:"VitaLens પ્રોટોટાઇપ v0.1 · Team VitaLens, COMP 8967 · લોકો અને રીડિંગ નમૂના છે, સાચા નથી",
+ m:{weight:["વજન","કિલો","તમારા શરીરનું વજન. રોજ થોડું ઉપર-નીચે થવું સામાન્ય છે. જો ઘણા મહિના સુધી ધીમે ધીમે વધતું રહે, તો ડૉક્ટર સાથે વાત કરવી સારી."],
+    sleep:["ઊંઘ","કલાક","તમે દરરોજ રાત્રે કેટલા કલાક ઊંઘો છો, જે તમારી ઘડિયાળ કે બેન્ડ માપે છે. મોટા ભાગના લોકોને 7 થી 9 કલાક ઊંઘ જોઈએ."],
+    steps:["રોજનાં પગલાં","પગલાં","તમે દિવસમાં કેટલાં પગલાં ચાલો છો, જે તમારો ફોન કે ઘડિયાળ ગણે છે. તેનાથી ખબર પડે છે કે તમે કેટલું હરો-ફરો છો."],
+    hr:["આરામ વખતે હૃદયના ધબકારા","ધબકારા/મિનિટ","તમે આરામથી બેઠા હો ત્યારે તમારું હૃદય એક મિનિટમાં કેટલી વાર ધબકે છે. ઓછો આંકડો સામાન્ય રીતે બતાવે છે કે હૃદય આરામથી કામ કરે છે."],
+    bp:["બ્લડ પ્રેશર (ઉપરનો આંકડો)","mmHg","લોહી તમારી નસો પર કેટલા જોરથી દબાણ કરે છે. બગીચાની પાઇપમાં પાણી જેવું વિચારો: જો લાંબો સમય જોર વધારે રહે, તો પાઇપ ખરાબ થવા લાગે. ઉપરનો આંકડો એ જોર છે જ્યારે હૃદય ધબકે છે."]},
+ p:[{rec:"સપ્ટેમ્બર 2025માં તમારી બ્લડ શુગરની તપાસ (HbA1c) 6.1% હતી. આ સામાન્ય કરતાં થોડી વધારે છે.",
+     mean:"તમારું વજન વધ્યું છે, અને ઊંઘ અને ચાલવાનું ઓછું થયું છે. આની અસર બ્લડ શુગર પર થઈ શકે, એટલે આ તમારા ડૉક્ટરને બતાવવું સારું રહેશે.",
+     word:["HbA1c","લોહીની એક તપાસ જે છેલ્લા 2 થી 3 મહિનાની તમારી સરેરાશ બ્લડ શુગર બતાવે છે. 5.7% થી ઓછું સામાન્ય છે."],
+     asks:["શું મારે બ્લડ શુગરની તપાસ (HbA1c) ફરીથી કરાવવી જોઈએ?","શું મારી ઊંઘ કે ઓછું ચાલવાની અસર મારી તબિયત પર થઈ રહી છે?","કયા નાના ફેરફારો મને સૌથી વધુ મદદ કરશે?"]},
+    {rec:"તમારા રેકોર્ડ મુજબ તમને હાઈ બ્લડ પ્રેશર છે અને તમે તેની રોજ દવા લો છો. ફાર્મસીમાંથી તમે છેલ્લે દવા (રિફિલ) એપ્રિલ 2026માં લીધી હતી.",
+     mean:"ત્યાર પછી તમારું બ્લડ પ્રેશર અને હૃદયના ધબકારા વધ્યા છે. તમારા ડૉક્ટર જોઈ શકે કે દવા કે રોજિંદી આદતોમાં ફેરફારની જરૂર છે કે નહીં.",
+     word:["રિફિલ","દવા પૂરી થાય ત્યારે ફાર્મસીમાંથી ફરી દવા લેવી."],
+     asks:["શું હું બ્લડ પ્રેશરની દવા બરાબર રીતે લઉં છું?","શું મારે વધુ દવા કે અલગ ડોઝની જરૂર છે?","મારે ઘરે કેટલી વાર બ્લડ પ્રેશર તપાસવું જોઈએ?"]},
+    {rec:"સપ્ટેમ્બર 2025માં તમારું છેલ્લું ચેક-અપ સામાન્ય હતું.",
+     mean:"આ વર્ષે તમારી બધી રીડિંગ તમારા સામાન્યની આસપાસ રહી. જેમ કરો છો તેમ કરતા રહો.",
+     word:["ચેક-અપ","ડૉક્ટર પાસે નિયમિત મુલાકાત, તમે સ્વસ્થ છો તે જોવા માટે, ભલે તમે સારું અનુભવો."],
+     asks:["શું મારે કોઈ વસ્તુ પર ધ્યાન રાખવું જોઈએ?","મારું આગલું ચેક-અપ ક્યારે કરાવવું જોઈએ?"]},
+    {rec:"ઓગસ્ટ 2025માં તમારું છેલ્લું ચેક-અપ સામાન્ય હતું.",told:" તમે જણાવ્યું કે તમે રમઝાનમાં રોઝા રાખો છો.",meanUnknown:"શિયાળામાં તમે ઓછું ચાલ્યા, જે વર્ષના એ સમય માટે સામાન્ય છે. માર્ચ 2026 ની આસપાસ તમારી ઊંઘ અને વજન પણ થોડા સમય માટે ઘટ્યાં, પછી પાછાં સામાન્ય થયાં. અત્યારે બધું તમારા સામાન્યની આસપાસ છે.",asksUnknown:["શું મારે ઊંઘ કે વજનમાં થોડા સમયના ઘટાડાની ચિંતા કરવી જોઈએ?","શિયાળામાં હું વધુ હરતો-ફરતો કેવી રીતે રહું?"],
+     mean:"શિયાળામાં તમે ઓછું ચાલ્યા, અને રમઝાનમાં તમારી ઊંઘ અને વજન થોડાં ઘટ્યાં. વર્ષના એ સમય માટે આ સામાન્ય છે, અને પછી બધું પાછું સામાન્ય થઈ ગયું. અત્યારે બધું તમારા સામાન્યની આસપાસ છે.",
+     word:["ઋતુ પ્રમાણે ફેરફાર","એવો ફેરફાર જે દર વર્ષે એક જ સમયે થાય, જેમ કે શિયાળામાં ઓછું ચાલવું. સામાન્ય રીતે આ તબિયતની સમસ્યા નથી."],
+     asks:["રોઝા દરમિયાન સ્વસ્થ રહેવા માટે મારે શું કરવું જોઈએ?","શિયાળામાં હું વધુ હરતો-ફરતો કેવી રીતે રહું?"]}]},
+
+es:{label:"Español",locale:"es-ES",speech:"es",
+ months:["enero","febrero","marzo","abril","mayo","junio","julio","agosto","septiembre","octubre","noviembre","diciembre"],
+ short:["ene","feb","mar","abr","may","jun","jul","ago","sep","oct","nov","dic"],monthFmt:(m,y)=>`${m} de ${y}`,
+ badge:"Prototipo · datos de ejemplo",langLbl:"Tu idioma",read:"Escuchar",stop:"Detener",
+ noVoice:"Este dispositivo no tiene voz para este idioma. Prueba con Chrome o Edge, o añade una voz en los ajustes.",
+ hello:(n,c)=>c?`Hola, ${n}. ${c===1?"Ha cambiado 1 cosa":"Han cambiado "+c+" cosas"} respecto a lo habitual.`:`Hola, ${n}. Todo está cerca de lo habitual.`,
+ sub:c=>`Comparamos tus últimos 2 meses con tus primeros 3 meses (octubre a diciembre de 2025). `+(c?"Los cambios para hablar con tu médico están en naranja.":"No hubo cambios importantes."),
+ usually:v=>`Lo habitual: ${v}`,up:"↑ Más alto de lo habitual",down:"↓ Más bajo de lo habitual",same:"✓ Lo habitual",
+ hint:"Toca una tarjeta para verla en el gráfico. Toca ? para saber qué significa.",
+ chartTitle:n=>`${n} durante el año`,
+ say:(n,m,a,up)=>`${n}: unos ${a} ${up?"más":"menos"} de lo habitual desde ${m}.`,
+ saySame:n=>`${n}: dentro de lo habitual todo el año.`,
+ q:{weight:"¿Qué me dice el peso?",sleep:"¿Qué me dice el sueño?",steps:"¿Qué son los pasos al día?",hr:"¿Qué es el pulso en reposo?",bp:"¿Qué es la presión arterial?"},
+ k:["Tu rango habitual","Tu promedio del mes","Fuera de lo habitual"],
+ obsT:"¿Ayunas o celebras alguno de estos?",
+ obsQ:m=>`Algunas de tus mediciones bajaron un tiempo alrededor de ${m} y luego se recuperaron. El ayuno y las fiestas religiosas pueden cambiar el sueño y el peso. Dinos qué celebras y VitaLens lo tendrá en cuenta.`,
+ obsQ2:"El ayuno y las fiestas religiosas pueden cambiar el sueño y el peso. VitaLens tiene en cuenta lo que celebras.",
+ obsNote:"Puedes cambiarlo cuando quieras. VitaLens nunca lo adivina por tu nombre.",
+ obs:{ramadan:"Ramadán",lent:"Cuaresma",navratri:"Navratri",none:"Ninguno"},
+ dipPill:"↺ Bajó un tiempo, ya es lo habitual",
+ sayDip:(n,m)=>`${n}: bajó un tiempo alrededor de ${m} y luego volvió a lo habitual. ¿Pasó algo entonces? Puedes contárnoslo abajo.`,
+ dipNote:m=>` Algunas mediciones también bajaron un tiempo alrededor de ${m}. Mira la pregunta de abajo.`,
+ docDip:(ms,m)=>`Bajadas breves alrededor de ${m}: ${ms}. Se recuperaron solas.`,
+ evT:"¿Qué pasaba en ese momento?",
+ evQ:m=>`Tus mediciones empezaron a cambiar alrededor de ${m}. ¿Pasó algo en tu vida por esas fechas? Toca todo lo que corresponda.`,
+ evNote:"Tus respuestas se añaden a la nota para tu médico. Ayudan a entender el cambio. No son un diagnóstico.",
+ ev:{work:"Trabajo nuevo o estrés laboral",travel:"Un viaje",sick:"Enfermedad o lesión",meds:"Empecé, dejé u olvidé un medicamento",family:"Algo en la familia (boda, bebé, pérdida)",move:"Me mudé",fasting:"Ayuno o cambio de dieta",none:"Nada que recuerde"},
+ docT:"Nota para tu médico",doc:(m,ms,ev)=>`Alrededor de ${m} hubo cambios en: ${ms}. Dijiste: ${ev}.`,docNone:(m,ms)=>`Alrededor de ${m} hubo cambios en: ${ms}. Toca arriba lo que pasaba para añadir tu parte de la historia.`,docSeason:s=>`Cambios de temporada este año: ${s}. Volvieron a la normalidad, así que no se marcaron.`,
+ chartEv:"Tu nota",and:" y ",lower:true,
+ seasons:{lent:"Cuaresma",navratri:"Navratri",winter:"Invierno",ramadan:"Ramadán",holidays:"Fiestas"},
+ seasonNote:n=>` Algunas bajadas a principios de año ocurrieron en estas épocas: ${n}. Es normal, así que no las marcamos.`,
+ saySeason:(n,s)=>`${n}: cambió durante esta época (${s}) y luego volvió a lo habitual. Es normal en esa época del año, así que no lo marcamos.`,
+ seasonPill:"~ Normal en esa época",k4:"Normal en esa época",
+ whyT:"Qué podría significar",wordT:"¿Qué significa esta palabra?",asksT:"Preguntas para tu médico",asksH:"Marca las que quieras preguntar.",
+ note:"VitaLens no da diagnósticos. Compara tus mediciones recientes con lo que es normal para ti, para que puedas hablarlo con tu médico.",
+ foot:"Prototipo VitaLens v0.1 · Team VitaLens, COMP 8967 · Personas y datos de ejemplo",
+ m:{weight:["Peso","kg","Cuánto pesa tu cuerpo. Es normal que cambie un poco cada día. Si sube poco a poco durante meses, conviene hablarlo con tu médico."],
+    sleep:["Sueño","horas","Cuántas horas duermes cada noche, según tu reloj o pulsera. La mayoría de los adultos necesita entre 7 y 9 horas."],
+    steps:["Pasos al día","pasos","Cuántos pasos das al día, según tu teléfono o reloj. Muestra cuánto te mueves."],
+    hr:["Pulso en reposo","latidos/min","Cuántas veces late tu corazón en un minuto cuando estás sentado y tranquilo. Un número más bajo suele significar que el corazón trabaja con facilidad."],
+    bp:["Presión arterial (número de arriba)","mmHg","La fuerza con la que la sangre empuja los tubos por donde corre. Piensa en el agua de una manguera: si empuja demasiado fuerte durante mucho tiempo, la manguera se desgasta. El número de arriba es el empuje cuando el corazón late."]},
+ p:[{rec:"Tu análisis de azúcar en sangre (HbA1c) de septiembre de 2025 dio 6.1%. Es un poco más alto de lo normal.",
+     mean:"Tu peso subió y dormiste y caminaste menos. Estas cosas pueden afectar el azúcar en sangre, así que es buena idea enseñárselas a tu médico.",
+     word:["HbA1c","Un análisis de sangre que muestra tu nivel medio de azúcar de los últimos 2 o 3 meses. Menos de 5.7% es normal."],
+     asks:["¿Debo repetir el análisis de azúcar (HbA1c)?","¿Puede que mi sueño o lo poco que camino afecten mi salud?","¿Qué cambios pequeños me ayudarían más?"]},
+    {rec:"Tu historial dice que tienes la presión alta y tomas un medicamento cada día. Recogiste tu medicamento en la farmacia por última vez en abril de 2026.",
+     mean:"Tu presión y tu pulso subieron después de esa última vez. Tu médico puede revisar si hay que cambiar algo en el medicamento o en tu rutina.",
+     word:["Reponer el medicamento","Volver a la farmacia por más medicamento cuando se te acaba."],
+     asks:["¿Estoy tomando bien mi medicamento para la presión?","¿Necesito más medicamento o una dosis diferente?","¿Cada cuánto debo medirme la presión en casa?"]},
+    {rec:"Tu último chequeo, en septiembre de 2025, fue normal.",
+     mean:"Este año todas tus mediciones se mantuvieron cerca de lo habitual. Sigue así.",
+     word:["Chequeo","Una visita regular al médico para ver que estás sano, aunque te sientas bien."],
+     asks:["¿Hay algo que deba vigilar?","¿Cuándo debo hacerme el próximo chequeo?"]},
+    {rec:"Tu último chequeo, en agosto de 2025, fue normal.",told:" Nos dijiste que ayunas durante el Ramadán.",meanUnknown:"En invierno caminaste menos, algo normal en esa época. Tu sueño y tu peso también bajaron un tiempo alrededor de marzo de 2026 y luego se recuperaron. Ahora todo está cerca de lo habitual.",asksUnknown:["¿Debo preocuparme por bajadas breves en mi sueño o mi peso?","¿Cómo puedo mantenerme activo en invierno?"],
+     mean:"En invierno caminaste menos, y en Ramadán tu sueño y tu peso bajaron un poco. Es normal en esas épocas y después todo volvió a lo habitual. Ahora todo está cerca de lo habitual.",
+     word:["Cambio de temporada","Un cambio que ocurre cada año en la misma época, como caminar menos en invierno. Normalmente no es un problema de salud."],
+     asks:["¿Qué puedo hacer para cuidarme mientras ayuno?","¿Cómo puedo mantenerme activo en invierno?"]}]},
+
+fr:{label:"Français",locale:"fr-CA",speech:"fr",
+ months:["janvier","février","mars","avril","mai","juin","juillet","août","septembre","octobre","novembre","décembre"],
+ short:["janv","févr","mars","avr","mai","juin","juil","août","sept","oct","nov","déc"],
+ badge:"Prototype · données fictives",langLbl:"Votre langue",read:"Écouter",stop:"Arrêter",
+ noVoice:"Cet appareil n'a pas de voix pour cette langue. Essayez Chrome ou Edge, ou ajoutez une voix dans les réglages.",
+ hello:(n,c)=>c?`Bonjour ${n}. ${c===1?"1 chose a changé":c+" choses ont changé"} par rapport à d'habitude.`:`Bonjour ${n}. Tout reste comme d'habitude.`,
+ sub:c=>`Nous avons comparé vos 2 derniers mois à vos 3 premiers mois (octobre à décembre 2025). `+(c?"Les changements à signaler sont en orange.":"Rien n'a assez changé pour être signalé."),
+ usually:v=>`D'habitude : ${v}`,up:"↑ Plus haut que d'habitude",down:"↓ Plus bas que d'habitude",same:"✓ Comme d'habitude",
+ hint:"Touchez une carte pour la voir sur le graphique. Touchez ? pour comprendre ce que c'est.",
+ chartTitle:n=>`${n} sur l'année`,
+ say:(n,m,a,up)=>`${n} : environ ${a} de ${up?"plus":"moins"} que d'habitude depuis ${m}.`,
+ saySame:n=>`${n} : dans vos valeurs habituelles toute l'année.`,
+ q:{weight:"Que m'apprend mon poids ?",sleep:"Que m'apprend mon sommeil ?",steps:"Que sont les pas par jour ?",hr:"Qu'est-ce que le pouls au repos ?",bp:"Qu'est-ce que la tension ?"},
+ k:["Votre zone habituelle","Votre moyenne du mois","Hors de l'habitude"],
+ obsT:"Jeûnez-vous ou observez-vous l'une de ces périodes ?",
+ obsQ:m=>`Certaines de vos mesures ont baissé un moment vers ${m}, puis sont revenues. Le jeûne et les fêtes religieuses peuvent changer le sommeil et le poids. Dites-nous ce que vous observez et VitaLens en tiendra compte.`,
+ obsQ2:"Le jeûne et les fêtes religieuses peuvent changer le sommeil et le poids. VitaLens tient compte de ce que vous observez.",
+ obsNote:"Vous pouvez le changer à tout moment. VitaLens ne le devine jamais à partir de votre nom.",
+ obs:{ramadan:"Ramadan",lent:"Carême",navratri:"Navratri",none:"Aucune"},
+ dipPill:"↺ Baisse passagère, revenu à la normale",
+ sayDip:(n,m)=>`${n} : baisse passagère vers ${m}, puis retour à la normale. S'est-il passé quelque chose ? Vous pouvez nous le dire plus bas.`,
+ dipNote:m=>` Certaines mesures ont aussi baissé un moment vers ${m}. Voyez la question plus bas.`,
+ docDip:(ms,m)=>`Baisses passagères vers ${m} : ${ms}. Tout est revenu de soi-même.`,
+ evT:"Que se passait-il à ce moment-là ?",
+ evQ:m=>`Vos mesures ont commencé à changer vers ${m}. S'est-il passé quelque chose dans votre vie à ce moment-là ? Touchez tout ce qui s'applique.`,
+ evNote:"Vos réponses sont ajoutées à la note pour votre médecin. Elles aident à comprendre le changement. Ce n'est pas un diagnostic.",
+ ev:{work:"Nouvel emploi ou stress au travail",travel:"Un voyage",sick:"Maladie ou blessure",meds:"Médicament commencé, arrêté ou oublié",family:"Événement familial (mariage, bébé, décès)",move:"Déménagement",fasting:"Jeûne ou changement d'alimentation",none:"Rien dont je me souvienne"},
+ docT:"Note pour votre médecin",doc:(m,ms,ev)=>`Vers ${m}, changements pour : ${ms}. Vous avez indiqué : ${ev}.`,docNone:(m,ms)=>`Vers ${m}, changements pour : ${ms}. Touchez ci-dessus ce qui se passait pour ajouter votre version.`,docSeason:s=>`Changements saisonniers cette année : ${s}. Tout est revenu à la normale, donc rien n'a été signalé.`,
+ chartEv:"Votre note",and:" et ",lower:true,
+ seasons:{lent:"Carême",navratri:"Navratri",winter:"Hiver",ramadan:"Ramadan",holidays:"Fêtes"},
+ seasonNote:n=>` Quelques baisses en début d'année ont eu lieu pendant ces périodes : ${n}. C'est normal, donc nous ne les avons pas signalées.`,
+ saySeason:(n,s)=>`${n} : a changé pendant cette période (${s}), puis est revenu à la normale. C'est normal à ce moment de l'année, donc nous ne l'avons pas signalé.`,
+ seasonPill:"~ Normal pour la saison",k4:"Normal pour la saison",
+ whyT:"Ce que cela peut vouloir dire",wordT:"Que veut dire ce mot ?",asksT:"Questions à poser à votre médecin",asksH:"Cochez celles que vous voulez poser.",
+ note:"VitaLens ne pose aucun diagnostic. Il compare vos mesures récentes à vos valeurs habituelles pour que vous puissiez en parler avec votre médecin.",
+ foot:"Prototype VitaLens v0.1 · Team VitaLens, COMP 8967 · Personnes et données fictives",
+ m:{weight:["Poids","kg","Le poids de votre corps. C'est normal qu'il bouge un peu chaque jour. S'il monte petit à petit pendant des mois, parlez-en à votre médecin."],
+    sleep:["Sommeil","heures","Combien d'heures vous dormez chaque nuit, mesuré par votre montre ou bracelet. La plupart des adultes ont besoin de 7 à 9 heures."],
+    steps:["Pas par jour","pas","Combien de pas vous faites par jour, comptés par votre téléphone ou votre montre. Cela montre combien vous bougez."],
+    hr:["Pouls au repos","battements/min","Combien de fois votre cœur bat en une minute quand vous êtes assis et calme. Un chiffre plus bas veut souvent dire que le cœur travaille sans effort."],
+    bp:["Tension (chiffre du haut)","mmHg","La force avec laquelle le sang pousse sur les tuyaux qui le transportent. Pensez à l'eau dans un tuyau d'arrosage : si elle pousse trop fort pendant longtemps, le tuyau s'abîme. Le chiffre du haut, c'est la poussée quand le cœur bat."]},
+ p:[{rec:"Votre analyse de sucre dans le sang (HbA1c) de septembre 2025 était de 6.1%. C'est un peu au-dessus de la normale.",
+     mean:"Votre poids a augmenté, et vous dormez et marchez moins. Cela peut jouer sur le sucre dans le sang, alors c'est une bonne idée de le montrer à votre médecin.",
+     word:["HbA1c","Une prise de sang qui montre votre taux moyen de sucre sur les 2 à 3 derniers mois. Moins de 5.7% est normal."],
+     asks:["Dois-je refaire mon analyse de sucre (HbA1c) ?","Mon sommeil ou le peu de marche peuvent-ils jouer sur ma santé ?","Quels petits changements m'aideraient le plus ?"]},
+    {rec:"Votre dossier indique que vous faites de l'hypertension et prenez un médicament chaque jour. Votre dernier renouvellement à la pharmacie date d'avril 2026.",
+     mean:"Votre tension et votre pouls ont monté depuis ce renouvellement. Votre médecin peut vérifier si votre médicament ou vos habitudes doivent changer.",
+     word:["Renouvellement","Retourner chercher votre médicament à la pharmacie quand vous n'en avez plus."],
+     asks:["Est-ce que je prends bien mon médicament pour la tension ?","Ai-je besoin d'un renouvellement ou d'une autre dose ?","À quelle fréquence dois-je prendre ma tension à la maison ?"]},
+    {rec:"Votre dernier bilan de santé, en septembre 2025, était normal.",
+     mean:"Cette année, toutes vos mesures sont restées proches de vos valeurs habituelles. Continuez comme ça.",
+     word:["Bilan de santé","Une visite régulière chez le médecin pour vérifier que tout va bien, même quand on se sent bien."],
+     asks:["Y a-t-il quelque chose à surveiller ?","Quand dois-je faire mon prochain bilan ?"]},
+    {rec:"Votre dernier bilan, en août 2025, était normal.",told:" Vous nous avez dit que vous jeûnez pendant le ramadan.",meanUnknown:"Vous avez moins marché en hiver, ce qui est normal à cette période. Votre sommeil et votre poids ont aussi baissé un moment vers mars 2026, puis sont revenus. Aujourd'hui, tout est proche de vos valeurs habituelles.",asksUnknown:["Dois-je m'inquiéter de baisses passagères de mon sommeil ou de mon poids ?","Comment rester actif pendant l'hiver ?"],
+     mean:"Vous avez moins marché en hiver, et votre sommeil et votre poids ont un peu baissé pendant le ramadan. C'est normal à ces périodes, et tout est ensuite revenu comme avant. Aujourd'hui, tout est proche de vos valeurs habituelles.",
+     word:["Changement saisonnier","Un changement qui revient chaque année à la même période, comme marcher moins en hiver. Ce n'est généralement pas un problème de santé."],
+     asks:["Que puis-je faire pour rester en bonne santé pendant le jeûne ?","Comment rester actif pendant l'hiver ?"]}]}
+};
+const ORDER=["en","hi","gu","es","fr"];
+
+/* ---------------- sample people and readings ---------------- */
+const KEYS=["weight","sleep","steps","hr","bp"];
+const SPEC={weight:{dec:1,noise:.4,tol:2},sleep:{dec:1,noise:.6,tol:.5},steps:{dec:0,noise:1500,tol:.15,pct:true},hr:{dec:0,noise:2,tol:4},bp:{dec:0,noise:6,tol:8}};
+const PEOPLE=[
+ {name:"Sarah",age:52,start:{weight:78,sleep:7.2,steps:8200,hr:63,bp:121},drift:{weight:[6,4.6],sleep:[6,-1.1],steps:[6,-2600]}},
+ {name:"Raj",age:61,start:{weight:88,sleep:6.9,steps:7400,hr:64,bp:127},drift:{bp:[7,14],hr:[7,7],steps:[7,-2100]}},
+ {name:"Mei",age:44,start:{weight:64,sleep:7.5,steps:9600,hr:60,bp:116},drift:{}},
+ {name:"Amir",age:38,start:{weight:82,sleep:7.0,steps:8800,hr:62,bp:119},drift:{},
+  dips:[{k:"steps",from:"2026-01-03",to:"2026-03-08",amt:-2900,ease:7},{k:"sleep",from:"2026-02-18",to:"2026-03-19",amt:-1.1,ease:5},{k:"weight",from:"2026-02-18",to:"2026-03-19",amt:-3.6,ease:18}]}
+];
+/* Times of year that often change readings. "all" applies to everyone in Canada; others only if the person observes them. */
+const SEASONS=[
+ {id:"winter",from:"2025-12-01",to:"2026-03-15",all:true,measures:{steps:-1,sleep:1}},
+ {id:"holidays",from:"2025-12-20",to:"2026-01-02",all:true,measures:{weight:1}},
+ {id:"ramadan",from:"2026-02-18",to:"2026-03-19",measures:{sleep:-1,weight:-1}},
+ {id:"lent",from:"2026-02-18",to:"2026-04-02",measures:{weight:-1}},
+ {id:"navratri",from:"2026-03-19",to:"2026-03-27",measures:{weight:-1}}
+];
+const OBS=["ramadan","lent","navratri","none"];
+const ms=s=>{const a=s.split("-").map(Number);return Date.UTC(a[0],a[1]-1,a[2])};
+const DAY=86400000;
+const MONTHS=Array.from({length:12},(_,i)=>({m:(9+i)%12,year:2025+((9+i)>=12?1:0)}));
+
+function rng(seed){return()=>{seed|=0;seed=seed+0x6D2B79F5|0;let t=Math.imul(seed^seed>>>15,1|seed);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+function gauss(r){let u=0;while(!u)u=r();return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*r())}
+
+/* Compare the last 2 months with the first 3 months ("your usual"), and explain dips that match a season */
+function daysIn(y,m){return new Date(Date.UTC(y,m+1,0)).getUTCDate()}
+function dipEffect(dp,t){const f=ms(dp.from),to=ms(dp.to),e=(dp.ease||7)*DAY;
+  if(t<f||t>to+e)return 0;if(t<f+e)return dp.amt*(t-f)/e;if(t<=to)return dp.amt;return dp.amt*(1-(t-to)/e)}
+function seasonsFor(p,k,i,dir,ob){const mo=MONTHS[i],a=Date.UTC(mo.year,mo.m,1),b=Date.UTC(mo.year,mo.m+1,1);
+  return SEASONS.filter(se=>(se.all||ob.includes(se.id))&&se.measures[k]===dir&&
+    (Math.min(b,ms(se.to)+DAY)-Math.max(a,ms(se.from)))/DAY>=10).map(se=>se.id)}
+function analyse(p,idx,ob){
+  const r=rng(idx*977+13),out={};
+  for(const k of KEYS){
+    const [from,amt]=p.drift[k]||[99,0],sp=SPEC[k],dips=(p.dips||[]).filter(x=>x.k===k);
+    const months=MONTHS.map((mo,i)=>{const n=daysIn(mo.year,mo.m);let s=0;
+      for(let d=0;d<n;d++){const t=Date.UTC(mo.year,mo.m,d+1),prog=Math.max(0,Math.min(1,(i+d/n-from)/3));
+        s+=p.start[k]+amt*prog+dips.reduce((a,dp)=>a+dipEffect(dp,t),0)+sp.noise*gauss(r)}
+      return s/n});
+    const usual=(months[0]+months[1]+months[2])/3,now=(months[10]+months[11])/2;
+    const tol=sp.pct?usual*sp.tol:sp.tol,diff=now-usual;
+    const season=months.map((v,i)=>{const dv=v-usual;if(Math.abs(dv)<tol)return null;const se=seasonsFor(p,k,i,Math.sign(dv),ob);return se.length?se:null});
+    const changed=Math.abs(diff)>=tol&&!season[10]&&!season[11];
+    let since=null;if(changed)for(let i=3;i<12;i++)if(Math.abs(months[i]-usual)>=tol&&!season[i]){since=i;break}
+    const pastDips=[];for(let i=3;i<12;i++)if(Math.abs(months[i]-usual)>=tol&&!season[i]&&!(changed&&i>=since))pastDips.push(i);
+    out[k]={months,usual,now,diff,tol,changed,since,season,dips:pastDips};
+  }
+  return out;
+}
+let obs=PEOPLE.map(()=>[]);
+let DATA=[];const recompute=()=>{DATA=PEOPLE.map((p,i)=>analyse(p,i,obs[i]))};recompute();
+
+/* ---------------- state ---------------- */
+let lang="en",cur=0,sel=null,events=PEOPLE.map(()=>[]);
+const EVKEYS=["work","travel","sick","meds","family","move","fasting","none"];
+const joinL=(arr)=>{const a=T().and;return arr.length<2?arr.join(""):arr.slice(0,-1).join(", ")+a+arr[arr.length-1]};
+const seasonIds=(k)=>[...new Set(DATA[cur][k].season.filter(Boolean).flat())].sort((a,b)=>SEASONS.findIndex(z=>z.id===a)-SEASONS.findIndex(z=>z.id===b));
+const seasonNames=(ids,inSentence)=>joinL(ids.map(id=>{const n=(inSentence&&T().seasonsIn&&T().seasonsIn[id])||T().seasons[id];return inSentence&&T().lower&&!(lang==="en"&&id==="ramadan")?n.toLowerCase():n}));
+function dipInfo(){const d=DATA[cur],ks=KEYS.filter(k=>d[k].dips.length);if(!ks.length)return null;return{ks,first:Math.min(...ks.map(k=>d[k].dips[0]))}}
+function changeInfo(){const d=DATA[cur],ch=KEYS.filter(k=>d[k].changed);if(!ch.length)return null;
+  const first=Math.min(...ch.map(k=>d[k].since));return{ch,first}}
+try{const s=localStorage.getItem("vl-lang");if(L[s])lang=s}catch(e){}
+const T=()=>L[lang];
+const num=(k,v)=>new Intl.NumberFormat(T().locale,{minimumFractionDigits:SPEC[k].dec,maximumFractionDigits:SPEC[k].dec,numberingSystem:"latn"}).format(SPEC[k].dec?v:Math.round(v));
+const monthName=i=>{const t=T(),mo=MONTHS[i];return t.monthFmt?t.monthFmt(t.months[mo.m],mo.year):`${t.months[mo.m]} ${mo.year}`};
+const $=id=>document.getElementById(id);
+
+function render(){
+  const t=T(),p=PEOPLE[cur],d=DATA[cur],tp=t.p[cur];
+  const changed=KEYS.filter(k=>d[k].changed);
+  if(!sel)sel=changed[0]||"weight";
+  document.documentElement.lang=lang;
+
+  $("badge").textContent=t.badge;$("lang-lbl").textContent=t.langLbl;
+  $("langs").innerHTML=ORDER.map(c=>`<button type="button" class="lang" data-lang="${c}" lang="${c}" aria-pressed="${c===lang}">${L[c].label}</button>`).join("");
+  $("people").innerHTML=PEOPLE.map((x,i)=>`<button type="button" class="person" data-i="${i}" aria-pressed="${i===cur}"><i>${x.name[0]}</i>${x.name}, ${x.age}</button>`).join("");
+  $("hello").textContent=t.hello(p.name,changed.length);
+  const allSeason=[...new Set(KEYS.flatMap(k=>seasonIds(k)))].sort((a,b)=>SEASONS.findIndex(z=>z.id===a)-SEASONS.findIndex(z=>z.id===b));
+  $("hello-sub").textContent=t.sub(changed.length)+(allSeason.length?t.seasonNote(seasonNames(allSeason,true)):"")+(dipInfo()?t.dipNote(monthName(dipInfo().first)):"");
+
+  $("measures").innerHTML=KEYS.map(k=>{const x=d[k],m=t.m[k];
+    return `<div class="m${k===sel?" on":""}">
+      <button type="button" class="pick" data-k="${k}" aria-pressed="${k===sel}">
+        <span class="name">${m[0]}</span>
+        <span class="now">${num(k,x.now)} <small>${m[1]}</small></span>
+        <span class="usual">${t.usually(num(k,x.usual))}</span>
+        <span class="pill ${x.changed?"change":x.dips.length?"dip":seasonIds(k).length?"season":"same"}">${x.changed?(x.diff>0?t.up:t.down):x.dips.length?t.dipPill:seasonIds(k).length?t.seasonPill:t.same}</span>
+      </button>
+      <button type="button" class="q" data-learn="${k}" aria-label="${t.q[k]}">?</button>
+    </div>`}).join("");
+  $("hint").textContent=t.hint;
+
+  drawChart();
+  $("k1").textContent=t.k[0];$("k2").textContent=t.k[1];$("k3").textContent=t.k[2];$("k4").textContent=t.k4;
+  $("why-t").textContent=t.whyT;
+  const told=obs[cur].includes("ramadan"),meanTxt=tp.meanUnknown&&!told?tp.meanUnknown:tp.mean;
+  $("why").innerHTML=`<p>${tp.rec}${told&&tp.told?tp.told:""}</p><p>${meanTxt}</p><div class="word"><span class="muted">${t.wordT}</span><br><b>${tp.word[0]}</b>: ${tp.word[1]}</div>`;
+  renderEvents();
+  $("asks-t").textContent=t.asksT;$("asks-h").textContent=t.asksH;
+  $("asks").innerHTML=(tp.asksUnknown&&!told?tp.asksUnknown:tp.asks).map((a,i)=>`<li><label for="q${cur}-${i}"><input type="checkbox" id="q${cur}-${i}"><span>${a}</span></label></li>`).join("");
+  $("note").textContent=t.note;$("foot").textContent=t.foot;
+  $("speak-txt").textContent=speaking?t.stop:t.read;
+  $("speak-msg").hidden=true;
+}
+
+function renderEvents(){
+  const t=T(),info=changeInfo(),dip=dipInfo();
+  $("obs-card").hidden=!(dip||obs[cur].length);
+  if(!$("obs-card").hidden){$("obs-t").textContent=t.obsT;$("obs-q").textContent=dip?t.obsQ(monthName(dip.first)):t.obsQ2;$("obs-note").textContent=t.obsNote;
+    $("obs-chips").innerHTML=OBS.map(o=>`<button type="button" class="chip" data-obs="${o}" aria-pressed="${obs[cur].includes(o)}">${t.obs[o]}</button>`).join("")}
+  $("ev-card").hidden=!info;
+  const lowerName=k=>t.lower?t.m[k][0].toLowerCase():t.m[k][0];
+  if(info){
+    $("ev-t").textContent=t.evT;$("ev-q").textContent=t.evQ(monthName(info.first));$("ev-note").textContent=t.evNote;
+    $("chips").innerHTML=EVKEYS.map(e=>`<button type="button" class="chip" data-ev="${e}" aria-pressed="${events[cur].includes(e)}">${t.ev[e]}</button>`).join("");
+  }
+  let note="";
+  if(info){const msl=joinL(info.ch.map(lowerName)),evs=events[cur].map(e=>t.lower?t.ev[e].charAt(0).toLowerCase()+t.ev[e].slice(1):t.ev[e]);
+    note=evs.length?t.doc(monthName(info.first),msl,joinL(evs)):t.docNone(monthName(info.first),msl)}
+  if(dip)note+=(note?" ":"")+t.docDip(joinL(dip.ks.map(lowerName)),monthName(dip.first));
+  const ss=KEYS.filter(k=>seasonIds(k).length);
+  if(ss.length)note+=(note?" ":"")+t.docSeason(ss.map(k=>`${lowerName(k)} (${seasonNames(seasonIds(k),true)})`).join(", "));
+  $("docnote").innerHTML=`<b>${t.docT}</b>${note||t.p[cur].mean}`;
+}
+
+function chartSentence(){
+  const t=T(),k=sel,x=DATA[cur][k],m=t.m[k];
+  if(!x.changed&&x.dips.length)return t.sayDip(m[0],monthName(x.dips[0]));
+  if(!x.changed){const se=seasonIds(k);return se.length?t.saySeason(m[0],seasonNames(se,true)):t.saySame(m[0])}
+  const amt=SPEC[k].pct?Math.abs(Math.round(x.diff/x.usual*100))+"%":`${num(k,Math.abs(x.diff))} ${m[1]}`;
+  const f=SPEC[k].pct&&t.sayPct?t.sayPct:t.say;
+  return f(m[0],monthName(x.since),amt,x.diff>0);
+}
+
+function drawChart(){
+  const t=T(),k=sel,x=DATA[cur][k],m=t.m[k];
+  $("chart-title").textContent=t.chartTitle(m[0]);
+  $("chart-say").textContent=chartSentence();
+  $("learn-t").textContent=t.q[k];$("learn-b").textContent=m[2];
+  const el=$("chart"),W=Math.max(300,el.clientWidth||680),H=W<500?220:260;
+  const ml=W<500?44:54,mr=12,mt=30,mb=30,pw=W-ml-mr,ph=H-mt-mb;
+  const lo0=x.usual-x.tol,hi0=x.usual+x.tol;
+  let lo=Math.min(lo0,...x.months),hi=Math.max(hi0,...x.months);const pad=(hi-lo)*.15;lo-=pad;hi+=pad;
+  const X=i=>ml+(i+.5)*pw/12,Y=v=>mt+(1-(v-lo)/(hi-lo))*ph;
+  const fmt=v=>k==="steps"?num("hr",v):num(k,v);
+  const every=(W<560||!t.short)?2:1,lab=i=>{const mo=MONTHS[i].m;return t.short?t.short[mo]:t.months[mo]};
+  let s=`<svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" role="img" aria-label="${m[0]}">`;
+  s+=`<rect x="${ml}" y="${Y(hi0)}" width="${pw}" height="${Y(lo0)-Y(hi0)}" fill="var(--accent-soft)" stroke="var(--accent)" stroke-opacity=".35"/>`;
+  [hi0,x.usual,lo0].forEach(v=>{s+=`<text x="${ml-8}" y="${Y(v)+4}" text-anchor="end" font-size="12" fill="var(--muted)" font-family="var(--body)">${fmt(v)}</text>`});
+  const XD=dt=>{for(let i=0;i<12;i++){const mo=MONTHS[i],a=Date.UTC(mo.year,mo.m,1),b=Date.UTC(mo.year,mo.m+1,1);if(dt<b)return ml+(i+Math.max(0,dt-a)/(b-a))*pw/12}return ml+pw};
+  for(const id of seasonIds(k)){const se=SEASONS.find(z=>z.id===id),x1=XD(ms(se.from)),x2=XD(ms(se.to)+DAY);
+    s+=`<rect x="${x1}" y="${mt}" width="${x2-x1}" height="${ph}" fill="var(--season)" opacity=".13"/><text x="${x1+4}" y="${mt-8}" font-size="12" font-weight="700" fill="var(--season)" font-family="var(--body)">${t.seasons[id]}</text>`}
+  const info=changeInfo();
+  if(info&&events[cur].length&&x.changed){const xe=ml+info.first*pw/12,lbl=`${t.chartEv}: ${t.ev[events[cur][0]]}${events[cur].length>1?" +"+(events[cur].length-1):""}`,end=xe>W*.6;
+    s+=`<line x1="${xe}" x2="${xe}" y1="${mt-4}" y2="${mt+ph}" stroke="var(--ink)" stroke-dasharray="3 4" stroke-width="1.5"/><text x="${end?xe-6:xe+6}" y="${mt-8}" text-anchor="${end?"end":"start"}" font-size="12" font-weight="700" fill="var(--ink)" font-family="var(--body)">${lbl}</text>`}
+  s+=`<line x1="${ml}" x2="${W-mr}" y1="${mt+ph}" y2="${mt+ph}" stroke="var(--line)"/>`;
+  MONTHS.forEach((_,i)=>{if(i%every)return;s+=`<text x="${X(i)}" y="${H-8}" text-anchor="middle" font-size="12" fill="var(--muted)" font-family="var(--body)">${lab(i)}</text>`});
+  s+=`<polyline points="${x.months.map((v,i)=>X(i).toFixed(1)+","+Y(v).toFixed(1)).join(" ")}" fill="none" stroke="var(--accent)" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>`;
+  x.months.forEach((v,i)=>{const out=Math.abs(v-x.usual)>=x.tol,sea=!!x.season[i];s+=`<circle cx="${X(i)}" cy="${Y(v)}" r="${out?6:4.5}" fill="${sea?"var(--season)":out?"var(--up)":"var(--accent)"}" stroke="var(--card)" stroke-width="2"><title>${monthName(i)}: ${num(k,v)} ${m[1]}</title></circle>`});
+  el.innerHTML=s+"</svg>";
+}
+
+/* ---------------- read aloud ---------------- */
+let speaking=false;
+const synth=("speechSynthesis" in window)?window.speechSynthesis:null;
+if(!synth)$("speak").hidden=true;
+function stopSpeak(){if(synth)synth.cancel();speaking=false;$("speak-txt").textContent=T().read}
+function speak(){
+  if(!synth)return;
+  if(speaking){stopSpeak();return}
+  const t=T(),tp=t.p[cur];
+  const voices=synth.getVoices(),v=voices.find(v=>v.lang&&v.lang.toLowerCase().startsWith(t.speech));
+  if(voices.length&&!v&&lang!=="en"){$("speak-msg").textContent=t.noVoice;$("speak-msg").hidden=false;return}
+  const text=[$("hello").textContent,$("chart-say").textContent,t.q[sel],t.m[sel][2],tp.rec,tp.mean].join(" ");
+  const u=new SpeechSynthesisUtterance(text);u.lang=t.locale;if(v)u.voice=v;u.rate=.92;
+  u.onend=u.onerror=()=>{speaking=false;$("speak-txt").textContent=T().read};
+  synth.cancel();synth.speak(u);speaking=true;$("speak-txt").textContent=t.stop;
+}
+if(synth&&synth.onvoiceschanged!==undefined)synth.onvoiceschanged=()=>{};
+
+/* ---------------- clicks ---------------- */
+document.addEventListener("click",e=>{
+  const b=e.target.closest("button");if(!b)return;
+  if(b.id==="speak"){speak();return}
+  if(b.dataset.lang){stopSpeak();lang=b.dataset.lang;try{localStorage.setItem("vl-lang",lang)}catch(err){}render();return}
+  if(b.dataset.obs){const o=b.dataset.obs,list=obs[cur];
+    if(o==="none")obs[cur]=list.includes("none")?[]:["none"];
+    else{const l=list.filter(x=>x!=="none");obs[cur]=l.includes(o)?l.filter(x=>x!==o):[...l,o]}
+    recompute();render();return}
+  if(b.dataset.ev){const e=b.dataset.ev,list=events[cur];
+    if(e==="none")events[cur]=list.includes("none")?[]:["none"];
+    else{const l=list.filter(x=>x!=="none");events[cur]=l.includes(e)?l.filter(x=>x!==e):[...l,e]}
+    document.querySelectorAll(".chip").forEach(c=>c.setAttribute("aria-pressed",events[cur].includes(c.dataset.ev)));
+    renderEvents();drawChart();return}
+  if(b.dataset.i!=null){stopSpeak();cur=+b.dataset.i;sel=null;render();return}
+  const k=b.dataset.k||b.dataset.learn;
+  if(k){sel=k;document.querySelectorAll(".m").forEach(n=>{const on=n.querySelector(".pick").dataset.k===sel;n.classList.toggle("on",on);n.querySelector(".pick").setAttribute("aria-pressed",on)});drawChart();
+    if(b.dataset.learn){const l=$("learn");l.classList.remove("flash");void l.offsetWidth;l.classList.add("flash");$("chart-card").scrollIntoView({behavior:"smooth",block:"start"})}}
+});
+let rt;window.addEventListener("resize",()=>{clearTimeout(rt);rt=setTimeout(drawChart,120)});
+render();
+})();
+</script>
+</body>
+</html>
