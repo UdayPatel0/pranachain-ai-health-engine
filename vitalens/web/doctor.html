@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Shared health record · VitaLens</title>
+<style>
+:root{--bg:#F3F6F5;--card:#fff;--ink:#18292B;--muted:#5A6C6F;--line:#DCE5E4;--accent:#127A74;--worse:#B5502B;--better:#2E7A4A;--watch:#9A6B10}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 "Atkinson Hyperlegible",system-ui,-apple-system,"Segoe UI",sans-serif}
+main{max-width:1100px;margin:0 auto;padding:20px}
+h1,h2{font-family:"Lexend","Trebuchet MS",system-ui,sans-serif;margin:0}h1{font-size:26px}h2{font-size:18px;margin-bottom:10px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:18px 20px;margin-bottom:16px}
+.muted{color:var(--muted)}.small{font-size:14px}
+.top{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:8px}
+.logo{font:600 20px "Lexend",system-ui}.logo b{color:var(--accent)}
+.banner{background:#E8F4F2;border:1px solid #BFE0DB;border-radius:12px;padding:10px 14px;font-size:14px}
+form{display:grid;gap:10px;max-width:420px}input,select{font:inherit;padding:10px 12px;border:1px solid var(--line);border-radius:10px}
+button{font:inherit;background:var(--accent);color:#fff;border:0;border-radius:10px;padding:11px 16px;font-weight:700;cursor:pointer}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}@media(max-width:800px){.grid{grid-template-columns:1fr}}
+.facts{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}.facts div{background:#F6F9F8;border-radius:10px;padding:8px 12px}.facts b{display:block;font-size:18px}
+table{width:100%;border-collapse:collapse;font-size:14px}th,td{text-align:left;padding:7px 6px;border-bottom:1px solid var(--line);vertical-align:middle}th{color:var(--muted);font-weight:600}
+.worse{color:var(--worse);font-weight:700}.better{color:var(--better);font-weight:700}.out{background:#FBEAE2;border-radius:6px;padding:1px 6px}
+.meter{height:6px;background:#E6EEED;border-radius:9px;margin-top:4px;width:120px}.meter i{display:block;height:100%;border-radius:9px;background:var(--accent)}.meter i.low{background:var(--watch)}
+svg.spark{width:110px;height:28px}
+.warn{color:#b71c1c;font-weight:700}
+@media print{.noprint{display:none}body{background:#fff}.card{border:0;padding:0}}
+</style>
+</head>
+<body>
+<main>
+  <div class="top"><div class="logo">Vita<b>Lens</b> <span class="small muted">· shared record</span></div><button class="noprint" id="print" hidden>Print</button></div>
+  <div id="app"><div class="card">Loading…</div></div>
+</main>
+<script>
+(function(){
+const $=id=>document.getElementById(id),esc=s=>String(s==null?"":s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const token=location.pathname.split("/").pop();
+const when=s=>s?new Date(s).toLocaleString([], {dateStyle:"medium",timeStyle:"short"}):"";
+const f=(v,d=1)=>v==null?"–":(+v).toFixed(d).replace(/\.0+$/,"");
+function spark(pts,lo,hi){if(!pts||pts.length<2)return"";const ys=pts.map(p=>p[1]),mn=Math.min(...ys,lo??Infinity),mx=Math.max(...ys,hi??-Infinity),r=mx-mn||1;
+  const X=i=>4+i*(102/(pts.length-1)),Y=v=>24-((v-mn)/r)*20;
+  const band=lo!=null&&hi!=null?`<rect x="0" y="${Y(Math.min(hi,mx))}" width="110" height="${Math.max(1,Y(Math.max(lo,mn))-Y(Math.min(hi,mx)))}" fill="#DDF1EE"/>`:"";
+  return `<svg class="spark" viewBox="0 0 110 28" aria-hidden="true">${band}<polyline fill="none" stroke="#127A74" stroke-width="2" points="${pts.map((p,i)=>X(i)+","+Y(p[1])).join(" ")}"/><circle cx="${X(pts.length-1)}" cy="${Y(ys.at(-1))}" r="2.5" fill="#127A74"/></svg>`}
+
+let PEND=null;
+async function start(){
+  const r=await fetch("/api/share/"+encodeURIComponent(token));const j=await r.json().catch(()=>({}));
+  if(!r.ok){$("app").innerHTML=`<div class="card"><h2>Link not available</h2><p class="muted">${esc(j.detail||"This link doesn't work.")}</p></div>`;return}
+  $("app").innerHTML=`<div class="card"><h1>A patient shared their health record with you</h1>
+    <p class="muted" style="margin:6px 0 14px">Shared as "${esc(j.label)}"${j.expires?` · available until ${esc(when(j.expires))}`:""}.</p>
+    <div class="banner" style="margin-bottom:14px">🔒 You need the 6-digit access code the patient gave you.${j.approval?" The patient will also be asked to approve you before anything is shown.":""} Your name and the time are added to the patient's access log.</div>
+    <form id="who"><label>Your name<br><input id="vn" required minlength="2" maxlength="80" placeholder="e.g. Dr. Priya Shah" autocomplete="name"></label>
+    <label>Role<br><select id="vr"><option>Doctor</option><option>Nurse</option><option>Pharmacist</option><option>Specialist</option><option>Other</option></select></label>
+    <label>Access code<br><input id="vc" required inputmode="numeric" autocomplete="one-time-code" pattern="[0-9 ]{6,7}" maxlength="7" placeholder="123 456" style="letter-spacing:.15em;font-size:20px"></label>
+    <button type="submit">Open record</button><p class="small" id="err" style="color:#b71c1c" aria-live="polite"></p></form></div>`;
+  $("who").addEventListener("submit",async e=>{e.preventDefault();$("err").textContent="";
+    const r=await fetch(`/api/share/${encodeURIComponent(token)}/open`,{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({viewer:$("vn").value,role:$("vr").value,code:$("vc").value.replace(/\s/g,"")})});
+    const d=await r.json().catch(()=>({}));if(!r.ok){$("err").textContent=d.detail||"Could not open.";if(r.status===423||r.status===410)$("who").querySelector("button").disabled=true;return}
+    if(d.pending){wait(d,$("vn").value);return}render(d,$("vn").value)});
+}
+function wait(p,viewer){PEND=p;
+  $("app").innerHTML=`<div class="card"><h1>Waiting for the patient</h1><p class="muted" style="margin-top:6px">The code was right. We've asked the patient to approve <b>${esc(viewer)}</b>. This page opens the record as soon as they do.</p><p class="small muted" id="ws" style="margin-top:12px">Checking…</p></div>`;
+  const tick=async()=>{const r=await fetch(`/api/share/${encodeURIComponent(token)}/requests/${encodeURIComponent(p.request)}`,{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({secret:p.secret})});
+    const d=await r.json().catch(()=>({}));
+    if(r.ok&&d.pending){$("ws").textContent="Still waiting… (last checked "+new Date().toLocaleTimeString()+")";setTimeout(tick,3000);return}
+    if(r.ok){render(d,viewer);return}
+    $("app").innerHTML=`<div class="card"><h2>${r.status===403?"The patient said no":"Request ended"}</h2><p class="muted">${esc(d.detail||"Please ask the patient.")}</p></div>`};
+  setTimeout(tick,1500)}
+
+function render(d,viewer){
+  $("print").hidden=false;
+  const labs=Object.entries(d.labs||{}).sort((a,b)=>(b[1].direction==="worse")-(a[1].direction==="worse"));
+  const cond=(d.history||[]).filter(h=>h.type==="Clinical finding");
+  $("app").innerHTML=`
+  <div class="card"><div class="small muted">Opened by ${esc(viewer)} · ${esc(when(new Date().toISOString()))}${d.expires?` · link ends ${esc(when(d.expires))}`:""}</div>
+    <h1 style="margin-top:4px">${esc(d.id)} · ${esc(d.age)}-year-old ${esc((d.sex||"").toLowerCase())}</h1>
+    <div class="facts" style="margin-top:12px">
+      <div><span class="small muted">Blood group</span><b>${esc(d.blood_group)}</b></div>
+      <div><span class="small muted">Allergies</span><b class="${/^no known/i.test(d.allergies)?"":"warn"}">${esc(d.allergies)}</b></div>
+      <div><span class="small muted">Height</span><b>${esc(d.height)} cm</b></div>
+      <div><span class="small muted">Family history</span><b style="font-size:15px">${esc(d.family)}</b></div></div></div>
+  <div class="card"><h2>Three main health checks</h2><div class="facts">${[["metabolic","Metabolic (type 2 diabetes risk)"],["cardio","Cardiovascular (heart and blood vessel risk)"],["pcos","PCOS (women's health)"]].map(([k,n])=>{const x=(d.scenarios||{})[k];
+      const lab={worsening:["Worsening","worse"],improving:["Improving","better"],improving_above_target:["Improving, above target",""],mixed:["Mixed",""],needs_review:["Needs review",""],stable:["Stable","better"]};
+      const st=x?lab[x.status]||[x.status,""]:null;return `<div><span class="small muted">${n}</span><b class="${st?st[1]:"muted"}">${st?st[0]:"Not applicable"}</b>${x?`<span class="small muted">${x.worse} worse · ${x.better} better${x.above_target&&x.above_target.length?` · above target: ${esc(x.above_target.join(", "))}`:""}</span>`:""}</div>`}).join("")}</div></div>
+  <div class="card"><h2>Year in brief (${esc(d.period)})</h2><p>${esc(d.summary)}</p>
+    <p class="small muted">Changes are measured against the patient's own first three months, not population averages.</p></div>
+  <div class="grid">
+    <div class="card"><h2>Conditions and history</h2><table><tr><th>Date</th><th>Finding</th><th>Status</th></tr>
+      ${(d.history||[]).map(h=>`<tr><td>${esc(h.date)}</td><td>${esc(h.finding)}<div class="small muted">${esc(h.type)}</div></td><td>${esc(h.status)}</td></tr>`).join("")}</table></div>
+    <div class="card"><h2>Current medicines</h2><table><tr><th>Medicine</th><th>Since</th><th>Taken</th></tr>
+      ${(d.medicines||[]).map(m=>`<tr><td><b>${esc(m.name)}</b> ${esc(m.dose||"")}<div class="small muted">${esc(m.frequency||"")} · ${esc(m.for||"")}</div></td><td>${esc(m.since)}</td>
+        <td>${m.adherence!=null?`${Math.round(m.adherence)}% of days<div class="meter"><i class="${m.adherence<80?"low":""}" style="width:${Math.min(100,m.adherence)}%"></i></div>${m.months_below_80?`<div class="small muted">${m.months_below_80} months below 80%</div>`:""}`:"–"}</td></tr>`).join("")||`<tr><td colspan="3" class="muted">None</td></tr>`}</table>
+      ${(d.responses||[]).map(r=>{const it=(r.items||[]).filter(i=>i.before!=null&&i.after!=null&&i.kind!=="symptom");return it.length?`<p class="small" style="margin-top:10px"><b>After ${esc(r.medication)} (${esc(r.start)}):</b> ${it.map(i=>`${esc(i.name)} ${f(i.before,2)} → ${f(i.after,2)} ${esc(i.unit)}`).join("; ")}</p>`:""}).join("")}</div>
+  </div>
+  <div class="card"><h2>Lab results</h2><table><tr><th>Test</th><th>First</th><th>Latest</th><th>Reference</th><th>Trend</th><th></th></tr>
+    ${labs.map(([k,v])=>`<tr><td><b>${esc(k)}</b></td><td>${f(v.first,2)} ${esc(v.unit)}</td><td><span class="${v.last_outside?"out":""}">${f(v.last,2)} ${esc(v.unit)}</span></td><td>${esc(v.ref)}</td>
+      <td>${spark(v.points,v.lo,v.hi)}</td><td class="${v.direction==="worse"?"worse":v.direction==="better"?"better":"muted"}">${esc(v.direction||"")}</td></tr>`).join("")}</table></div>
+  <div class="card"><h2>Home and wearable readings (monthly)</h2><table><tr><th>Measure</th><th>Usual (first 3 months)</th><th>Recent (last 3 months)</th><th>12 months</th></tr>
+    ${Object.values(d.trends||{}).map(t=>`<tr><td>${esc(t.label)}</td><td>${f(t.baseline,t.dec??1)} ${esc(t.unit)}</td><td>${f(t.recent,t.dec??1)} ${esc(t.unit)}</td><td>${spark((t.monthly||[]).map((v,i)=>[i,v]).filter(p=>p[1]!=null))}</td></tr>`).join("")}</table></div>
+  ${(d.documents||[]).length?`<div class="card"><h2>Documents from the patient (${d.documents.length})</h2><table><tr><th>Date</th><th>Document</th><th>Type</th><th></th></tr>
+    ${d.documents.map(x=>`<tr><td>${esc(x.doc_date||x.uploaded.slice(0,10))}</td><td><b>${esc(x.title)}</b><div class="small muted">${esc(x.filename)} · ${Math.max(1,Math.round(x.size/1024))} KB</div></td><td>${esc(x.kind)}</td>
+      <td><a href="/api/share/${encodeURIComponent(token)}/documents/${encodeURIComponent(x.id)}" target="_blank" rel="noopener">Open</a></td></tr>`).join("")}</table>
+    <p class="small muted">Uploaded by the patient. Opening a document is recorded in their access log.</p></div>`:""}
+  <div class="card"><h2>Symptoms reported (${(d.symptoms||[]).length})</h2><p class="small">${(d.symptoms||[]).slice(-15).reverse().map(s=>`${esc(s[0])}: <b>${esc(s[1])}</b> (${esc(s[2])})`).join(" · ")}</p></div>
+  <p class="small muted">Prepared by VitaLens from the patient's PranaChain record. VitaLens describes changes; it does not diagnose. Prototype using synthetic data.</p>`;
+}
+$("print").addEventListener("click",()=>print());
+start();
+})();
+</script>
+</body>
+</html>
