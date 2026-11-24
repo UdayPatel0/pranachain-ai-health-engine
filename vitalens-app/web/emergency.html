@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Medical emergency card · VitaLens</title>
+<style>
+body{margin:0;background:#fbeeee;font-family:"Atkinson Hyperlegible",system-ui,-apple-system,"Segoe UI",sans-serif;color:#1b1b1b}
+main{max-width:600px;margin:0 auto;padding:16px}
+.top{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;gap:8px;flex-wrap:wrap}
+select{font:inherit;padding:8px 10px;border-radius:10px;border:1px solid #d9b9b9;background:#fff}
+.msg{background:#fff;border-radius:14px;padding:20px;font-size:18px}
+.call{display:block;text-align:center;margin-top:14px;background:#C62828;color:#fff;text-decoration:none;padding:14px;border-radius:12px;font-weight:700;font-size:18px}
+</style>
+</head>
+<body>
+<main>
+  <div class="top"><b>VitaLens</b><label>Language <select id="lang"><option value="en">English</option><option value="hi">हिन्दी</option><option value="gu">ગુજરાતી</option><option value="es">Español</option><option value="fr">Français</option></select></label></div>
+  <div id="out"><div class="msg">Loading…</div></div>
+  <a class="call" href="tel:911" id="call">Call emergency services (911 / 112)</a>
+</main>
+<script src="/card.js"></script>
+<script>
+(function(){
+  const st=document.createElement("style");st.textContent=VLCard.CSS;document.head.append(st);
+  const token=location.pathname.split("/").pop(),out=document.getElementById("out"),sel=document.getElementById("lang");
+  const pick=(navigator.language||"en").slice(0,2);if(VLCard.LANGS.includes(pick))sel.value=pick;
+  let card=null;
+  const show=()=>{out.innerHTML=VLCard.render(card,sel.value,sel.value==="en"?null:"en")};
+  fetch("/api/emergency/"+encodeURIComponent(token)).then(async r=>{const j=await r.json().catch(()=>({}));
+    if(!r.ok){out.innerHTML=`<div class="msg">${(j.detail||"This card isn't available.").replace(/</g,"&lt;")}</div>`;return}
+    card=j;show()}).catch(()=>{out.innerHTML='<div class="msg">Could not load the card. Check the internet connection.</div>'});
+  sel.addEventListener("change",()=>card&&show());
+})();
+</script>
+</body>
+</html>

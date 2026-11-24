@@ -1,0 +1,772 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>My VitaLens</title>
+
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lexend:wght@400;500;600&family=Atkinson+Hyperlegible:wght@400;700&family=Noto+Sans+Devanagari:wght@400;600&family=Noto+Sans+Gujarati:wght@400;600&display=swap">
+<style>
+/* Layout: a calm personal health app. One column of cards on phones, two columns on wide screens.
+   Home = what changed + body map + areas; Area = one topic in depth; Ask = chat; Visit = doctor summary. */
+:root{
+  --bg:#F3F6F5; --card:#FFFFFF; --ink:#18292B; --muted:#5A6C6F; --line:#DCE5E4;
+  --accent:#127A74; --accent-ink:#FFFFFF; --accent-soft:#DDF1EE;
+  --worse:#B5502B; --worse-soft:#FBEAE2; --watch:#9A6B10; --watch-soft:#FAF0D9;
+  --better:#2E7A4A; --better-soft:#E3F2E8; --steady:#4F6C70; --steady-soft:#E8EFEF;
+  --skin:#E6EEED; --skin-line:#C9D7D5;
+  --head:"Lexend","Trebuchet MS",system-ui,sans-serif;
+  --body:"Atkinson Hyperlegible","Noto Sans Devanagari","Noto Sans Gujarati",system-ui,-apple-system,"Segoe UI",sans-serif;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0E1817; --card:#152221; --ink:#E3EEEC; --muted:#9AB0AD; --line:#26393A;
+  --accent:#5CC8BE; --accent-ink:#0E1817; --accent-soft:#17383A; --worse:#F0956E; --worse-soft:#3D2419;
+  --watch:#E5BD62; --watch-soft:#382D14; --better:#7CCB97; --better-soft:#183324; --steady:#9DB7BA; --steady-soft:#1E2E30;
+  --skin:#1D2E2E; --skin-line:#2E4546; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0E1817; --card:#152221; --ink:#E3EEEC; --muted:#9AB0AD; --line:#26393A;
+  --accent:#5CC8BE; --accent-ink:#0E1817; --accent-soft:#17383A; --worse:#F0956E; --worse-soft:#3D2419;
+  --watch:#E5BD62; --watch-soft:#382D14; --better:#7CCB97; --better-soft:#183324; --steady:#9DB7BA; --steady-soft:#1E2E30;
+  --skin:#1D2E2E; --skin-line:#2E4546; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:17px;line-height:1.6;margin:0}
+.page{max-width:1100px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:14px 40px;display:flex;flex-direction:column;gap:16px}
+h1,h2,h3{font-family:var(--head);font-weight:600;margin:0;text-wrap:balance;letter-spacing:-.005em}
+h1{font-size:clamp(24px,4.6vw,32px);line-height:1.2} h2{font-size:20px;line-height:1.3} h3{font-size:17px}
+p{margin:0} button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,[data-area]:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.muted{color:var(--muted)} .small{font-size:14.5px}
+.num{font-variant-numeric:tabular-nums}
+[hidden]{display:none!important}
+
+.bar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between}
+.logo{font-family:var(--head);font-weight:600;font-size:21px}
+.logo b{color:var(--accent);font-weight:600}
+.tools{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.sel{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:7px 10px;font-size:15px}
+.btn{border:1px solid var(--line);background:var(--card);border-radius:10px;padding:8px 13px;font-size:15px}
+.btn:hover{border-color:var(--accent)}
+.btn.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent);font-weight:700}
+.btn[disabled]{opacity:.55;cursor:default}
+.link{border:0;background:none;color:var(--accent);font-weight:700;padding:0}
+
+.card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:20px;min-width:0}
+.grid{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);gap:16px;align-items:start}
+@media (max-width:860px){.grid{grid-template-columns:minmax(0,1fr)}}
+.col{display:flex;flex-direction:column;gap:16px;min-width:0}
+
+.pill{display:inline-flex;align-items:center;gap:6px;font-size:13.5px;font-weight:700;border-radius:999px;padding:3px 11px;white-space:nowrap}
+.s-worse{background:var(--worse-soft);color:var(--worse)} .s-watch{background:var(--watch-soft);color:var(--watch)}
+.s-better{background:var(--better-soft);color:var(--better)} .s-steady{background:var(--steady-soft);color:var(--steady)}
+.s-nodata{border:1px solid var(--line);color:var(--muted)}
+
+.login{display:flex;flex-direction:column;gap:6px;margin-top:12px}
+.login input:not([type=checkbox]){background:var(--card);border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin-bottom:6px}
+.login .show{display:flex;gap:8px;align-items:center}
+.login .btn{margin-top:6px;padding:11px}
+.err{color:var(--worse);font-weight:700;min-height:1.2em}
+.people{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px;margin-top:14px}
+.person{border:1px solid var(--line);background:var(--card);border-radius:14px;padding:14px;text-align:left;display:flex;flex-direction:column;gap:4px}
+.person:hover{border-color:var(--accent)}
+.person b{font-family:var(--head);font-size:17px;font-weight:500}
+.idrow{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
+.idrow input{flex:1 1 180px;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:10px 12px;text-transform:uppercase}
+
+.hello{display:flex;flex-direction:column;gap:6px}
+.noticed{list-style:none;margin:14px 0 0;padding:0;display:flex;flex-direction:column;gap:10px}
+.noticed li button{width:100%;text-align:left;border:1px solid var(--line);background:var(--bg);border-radius:14px;padding:12px 14px;display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:12px;align-items:center}
+.noticed li button:hover{border-color:var(--accent)}
+@media (max-width:520px){.noticed li button{grid-template-columns:auto minmax(0,1fr)}.noticed li button .pill{grid-column:2;justify-self:start}}
+.dot{width:12px;height:12px;border-radius:50%;flex:none}
+.d-worse{background:var(--worse)} .d-watch{background:var(--watch)} .d-better{background:var(--better)} .d-steady{background:var(--steady)} .d-nodata{border:2px solid var(--muted)}
+.explain{margin-top:16px;border-top:1px solid var(--line);padding-top:14px}
+.aiout{margin-top:10px;line-height:1.75;white-space:pre-wrap}
+.aiout.wait{color:var(--muted);font-style:italic}
+.checks{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px;padding:0;list-style:none}
+.checks li{font-size:12.5px;border-radius:999px;padding:2px 9px;border:1px solid var(--line)}
+.checks li.ok{color:var(--better);border-color:var(--better)} .checks li.bad{color:var(--worse);border-color:var(--worse)}
+.src{font-size:12.5px;color:var(--muted);margin-top:6px}
+.src.aierr{color:var(--worse);font-size:14px;font-weight:700}
+
+.bodywrap{display:grid;grid-template-columns:170px minmax(0,1fr);gap:16px;align-items:start;margin-top:12px}
+@media (max-width:520px){.bodywrap{grid-template-columns:110px minmax(0,1fr);gap:10px}}
+.bodymap svg{width:100%;height:auto;display:block}
+.hot{cursor:pointer}
+.hot circle.ring{fill:none;stroke-width:2.5}
+@media (prefers-reduced-motion:no-preference){.hot.pulse circle.ring{animation:pulse 1.8s ease-out infinite;transform-origin:center;transform-box:fill-box}@keyframes pulse{0%{opacity:.9;transform:scale(1)}100%{opacity:0;transform:scale(2.1)}}}
+.areas{display:flex;flex-direction:column;gap:8px;min-width:0}
+.area{border:1px solid var(--line);background:var(--bg);border-radius:14px;padding:10px 12px;text-align:left;display:flex;flex-direction:column;gap:2px;min-width:0}
+.area:hover{border-color:var(--accent)}
+.area .t{display:flex;justify-content:space-between;gap:8px;align-items:center;font-weight:700;flex-wrap:wrap}
+.area .s{font-size:14px;color:var(--muted)}
+
+.meds{list-style:none;margin:12px 0 0;padding:0;display:flex;flex-direction:column;gap:12px}
+.meds li{border:1px solid var(--line);border-radius:14px;padding:12px 14px;background:var(--bg)}
+.meter{height:8px;border-radius:4px;background:var(--line);overflow:hidden;margin-top:6px}
+.meter i{display:block;height:100%;background:var(--accent)}
+.meter i.low{background:var(--watch)}
+
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+.chip{border:1px solid var(--line);background:var(--card);border-radius:999px;padding:6px 12px;font-size:14.5px;text-align:left}
+.chip:hover{border-color:var(--accent)}
+.chip[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink);border-color:var(--accent);font-weight:700}
+.notes{list-style:none;margin:10px 0 0;padding:0;display:flex;flex-direction:column;gap:6px}
+.notes li{display:flex;justify-content:space-between;gap:10px;background:var(--bg);border-radius:10px;padding:8px 12px;font-size:15px}
+.notes li button{border:0;background:none;color:var(--muted)}
+.addnote{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
+.addnote input{flex:1 1 200px;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:9px 12px}
+
+.chat{display:flex;flex-direction:column;gap:10px;margin-top:12px;max-height:440px;overflow:auto}
+.chat:empty{display:none}
+.msg{border-radius:14px;padding:10px 14px;max-width:88%;white-space:pre-wrap;line-height:1.6}
+.msg.me{align-self:flex-end;background:var(--accent);color:var(--accent-ink)}
+.msg.ai{align-self:flex-start;background:var(--bg);border:1px solid var(--line)}
+.msg.ai.wait{color:var(--muted);font-style:italic}
+.msg .checks{margin-top:8px;white-space:normal}
+.askrow{display:flex;gap:8px;margin-top:12px}
+.askrow input{flex:1;min-width:0;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:10px 12px}
+
+.qs{list-style:none;margin:10px 0 0;padding:0;display:flex;flex-direction:column;gap:8px}
+.qs label{display:flex;gap:10px;align-items:flex-start;cursor:pointer}
+.qs input{width:20px;height:20px;margin:3px 0 0;accent-color:var(--accent);flex:none}
+.summary{background:var(--bg);border:1px solid var(--line);border-radius:12px;padding:12px;font-size:14px;white-space:pre-wrap;margin:10px 0 0;max-height:300px;overflow:auto;font-family:var(--body)}
+
+.tiles{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:14px}
+@media (max-width:520px){.tiles{grid-template-columns:minmax(0,1fr)}}
+.tile{border:1px solid var(--line);border-radius:14px;padding:12px 14px;background:var(--bg);display:flex;flex-direction:column;gap:4px;min-width:0}
+.tile .n{font-weight:700;font-size:15px;display:flex;justify-content:space-between;gap:8px;align-items:center;flex-wrap:wrap}
+.tile .v{font-family:var(--head);font-size:26px;font-weight:500;line-height:1.15}
+.tile .v small{font-family:var(--body);font-size:14px;color:var(--muted);font-weight:400}
+.tile .u{font-size:14px;color:var(--muted)}
+.tile .what{font-size:14px;color:var(--muted);border-top:1px dashed var(--line);padding-top:6px;margin-top:2px}
+.tile svg{width:100%;height:auto;display:block;margin-top:4px}
+.say{font-size:18px;line-height:1.6;margin-top:10px;max-width:65ch}
+.disc{font-size:13.5px;color:var(--muted);border-left:3px solid var(--line);padding-left:12px}
+footer{font-size:13px;color:var(--muted);text-align:center}
+footer a{color:var(--accent)}
+/* ---- v1.0: control, emergency card, check-in, sources ---- */
+.own{border-color:var(--accent)}
+.own .lede{display:flex;gap:10px;align-items:flex-start;background:var(--accent-soft);border-radius:12px;padding:10px 12px;margin-top:10px}
+.shareform{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}.shareform input,.shareform select,.cform input,.remrow input{font:inherit;padding:9px 11px;border:1px solid var(--line);border-radius:10px;background:var(--card);color:var(--ink)}
+.shareform input{flex:1 1 160px}
+.links{list-style:none;margin:12px 0 0;padding:0;display:grid;gap:8px}.links li{border:1px solid var(--line);border-radius:12px;padding:10px 12px}
+.links .row{display:flex;justify-content:space-between;gap:8px;align-items:center;flex-wrap:wrap}.links .acts{display:flex;gap:6px;flex-wrap:wrap}
+.btn.sm{padding:6px 10px;font-size:14px}.btn.danger{color:var(--worse)}
+.qrbox{margin-top:10px;display:flex;gap:14px;align-items:center;flex-wrap:wrap}.qrbox img{width:150px;height:150px;background:#fff;border-radius:8px;padding:4px}
+.urlbox{font-family:ui-monospace,Consolas,monospace;font-size:12px;word-break:break-all;background:var(--bg);border-radius:8px;padding:6px 8px}
+.log{list-style:none;margin:10px 0 0;padding:0;max-height:260px;overflow:auto;border-top:1px solid var(--line)}
+.log li{display:grid;grid-template-columns:22px 1fr;gap:8px;padding:8px 0;border-bottom:1px solid var(--line);font-size:14px}
+.log .ic{font-size:15px}.log .h{font-family:ui-monospace,Consolas,monospace;font-size:11px;color:var(--muted)}
+.chain{display:inline-flex;gap:6px;align-items:center;border-radius:999px;padding:3px 10px;font-size:13px;font-weight:700}
+.chain.ok{background:var(--better-soft);color:var(--better)}.chain.bad{background:var(--worse-soft);color:var(--worse)}
+.emerg{border-color:#E8B4B4}.emerg h2:before{content:"✚ ";color:#C62828}
+.dosegrid{list-style:none;margin:10px 0 0;padding:0;display:grid;gap:10px}.dosegrid li{border:1px solid var(--line);border-radius:12px;padding:10px 12px}
+.dosebtns{display:flex;gap:6px;margin-top:6px}.dosebtns .btn[aria-pressed="true"].take{background:var(--better);color:#fff;border-color:var(--better)}.dosebtns .btn[aria-pressed="true"].miss{background:var(--worse);color:#fff;border-color:var(--worse)}
+.strip{display:flex;gap:4px;margin-top:8px;flex-wrap:wrap}.strip i{width:16px;height:16px;border-radius:5px;background:var(--line);display:block}.strip i.t{background:var(--better)}.strip i.m{background:var(--worse)}.strip i.today{outline:2px solid var(--accent);outline-offset:1px}
+.remrow{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:12px}
+.sup{display:inline-block;min-width:18px;height:18px;line-height:18px;text-align:center;font-size:11px;font-weight:700;border-radius:6px;background:var(--accent-soft);color:var(--accent);border:0;padding:0 4px;margin-left:3px;vertical-align:super;cursor:pointer}
+.facts{margin:10px 0 0;padding:8px 10px 8px 28px;border-left:3px solid var(--accent-soft);font-size:13px;color:var(--muted)}.facts li.hl{color:var(--ink);background:var(--accent-soft);border-radius:6px}
+.facts-t{font-size:12px;font-weight:700;color:var(--muted);margin-top:8px;text-transform:uppercase;letter-spacing:.04em}
+dialog#modal{border:0;border-radius:18px;padding:0;max-width:640px;width:calc(100% - 24px);background:var(--card);color:var(--ink)}dialog#modal::backdrop{background:rgba(0,0,0,.45)}
+.mhead{display:flex;justify-content:space-between;align-items:center;padding:14px 18px;border-bottom:1px solid var(--line)}.mbody{padding:16px 18px;display:grid;gap:14px}
+.cform{display:grid;gap:8px}
+a.btn{text-decoration:none;color:var(--ink);display:inline-flex;align-items:center}
+/* ---- v1.1: cleaner layout, tabs, three health checks first, documents ---- */
+:root{--bg:#F5F7F7;--line:#E3EAE9;--shadow:0 1px 2px rgba(20,45,45,.04),0 6px 20px rgba(20,45,45,.05);--radius:16px}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--bg:#0D1615;--card:#131F1E;--line:#22302F;--shadow:none}}
+:root[data-theme="dark"]{--bg:#0D1615;--card:#131F1E;--line:#22302F;--shadow:none}
+body{font-size:16.5px}
+.page{max-width:1160px;gap:18px}
+.card{border:1px solid var(--line);border-radius:var(--radius);padding:22px 24px;box-shadow:var(--shadow)}
+.card h2{margin-bottom:2px}.card>.small.muted{margin-bottom:12px}
+.btn{border-radius:10px;padding:8px 14px}.btn.primary{box-shadow:none}
+.tabs{display:flex;gap:2px;overflow-x:auto;border-bottom:1px solid var(--line);position:sticky;top:0;z-index:5;background:var(--bg);scrollbar-width:none;margin-bottom:6px}
+.tabs::-webkit-scrollbar{display:none}
+.tab{border:0;background:none;padding:12px 14px;font-weight:600;font-size:15.5px;color:var(--muted);border-bottom:2.5px solid transparent;white-space:nowrap;border-radius:0}
+.tab:hover{color:var(--ink)}.tab[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--accent)}
+.panel{display:flex;flex-direction:column;gap:18px;padding-top:6px}
+.two{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:18px;align-items:start}
+@media (max-width:860px){.two{grid-template-columns:minmax(0,1fr)}}
+.hero{padding:6px 2px 0}.hero h1{margin:4px 0 6px}.eyebrow{font-size:13.5px;color:var(--muted);letter-spacing:.01em}
+.scen-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px;align-items:start}
+@media (max-width:960px){.scen-grid{grid-template-columns:minmax(0,1fr)}}
+.scard{--c:var(--steady);background:var(--card);border:1px solid var(--line);border-top:4px solid var(--c);border-radius:var(--radius);padding:18px 20px;box-shadow:var(--shadow);display:flex;flex-direction:column;gap:12px;cursor:pointer;transition:transform .12s ease,box-shadow .12s ease;min-width:0}
+.scard:hover{transform:translateY(-2px);box-shadow:0 10px 28px rgba(20,45,45,.09)}
+.scard:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.scard.c-worse{--c:var(--worse)}.scard.c-watch{--c:var(--watch)}.scard.c-better{--c:var(--better)}.scard.c-steady{--c:var(--steady)}
+.scard.c-na{--c:var(--line);cursor:default;box-shadow:none;background:transparent}.scard.c-na:hover{transform:none;box-shadow:none}
+.scard-top{display:flex;flex-direction:column-reverse;gap:8px;align-items:flex-start}.scard h3{font-size:18px;line-height:1.3}
+.counts{display:flex;gap:8px;flex-wrap:wrap;font-size:13.5px;font-weight:700}
+.counts span{border-radius:8px;padding:2px 9px}.cw{background:var(--worse-soft);color:var(--worse)}.cb{background:var(--better-soft);color:var(--better)}.ct{background:var(--watch-soft);color:var(--watch)}
+.evs{list-style:none;margin:0;padding:0}
+.ev{display:flex;justify-content:space-between;gap:10px;padding:7px 0 7px 12px;border-top:1px solid var(--line);font-size:15px;position:relative}
+.ev:before{content:"";position:absolute;left:0;top:50%;width:6px;height:6px;border-radius:50%;transform:translateY(-50%);background:var(--steady)}
+.ev-worse:before{background:var(--worse)}.ev-better:before{background:var(--better)}.ev-watch:before{background:var(--watch)}
+.ev b{font-weight:600;white-space:nowrap}.ev-worse b{color:var(--worse)}.ev-better b{color:var(--better)}
+.scard .target{color:var(--watch);margin-top:-4px}.scard .more{font-weight:700;color:var(--accent);font-size:14.5px;margin-top:auto}
+.pill.big{font-size:15px;padding:5px 14px}
+.area-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:10px;margin-top:12px}
+.area{background:var(--card)}.area:hover{border-color:var(--accent)}
+.why{list-style:none;margin:8px 0 0;padding:0}.why li{display:flex;justify-content:space-between;gap:10px;padding:8px 0;border-top:1px solid var(--line)}
+.tiles{grid-template-columns:repeat(auto-fill,minmax(260px,1fr))!important}
+.drop{position:relative;display:block;border:2px dashed var(--line);border-radius:14px;padding:26px 16px;text-align:center;cursor:pointer;background:var(--bg);transition:border-color .12s,background .12s}
+.drop:hover,.drop.over{border-color:var(--accent);background:var(--accent-soft)}
+.drop input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%}
+.docmeta{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}.docmeta input{font:inherit;padding:9px 11px;border:1px solid var(--line);border-radius:10px;background:var(--card);color:var(--ink)}
+.docmeta #doctitle{flex:1 1 220px}
+.doclist{list-style:none;margin:14px 0 0;padding:0;display:grid;gap:8px}
+.doclist li{display:flex;align-items:center;gap:12px;border:1px solid var(--line);border-radius:12px;padding:10px 12px;flex-wrap:wrap}
+.doclist li.empty{border-style:dashed;justify-content:center;padding:18px}
+.dico{width:42px;height:42px;border-radius:10px;display:grid;place-items:center;font-size:11px;font-weight:800;letter-spacing:.04em;flex:none}
+.dico.pdf{background:var(--worse-soft);color:var(--worse)}.dico.img{background:var(--accent-soft);color:var(--accent)}
+.dmain{display:flex;flex-direction:column;flex:1;min-width:160px}.doclist .acts{display:flex;gap:6px;flex-wrap:wrap}
+.disc{font-size:13.5px}
+.shareform .approve{flex-basis:100%;display:flex;gap:8px;align-items:center;color:var(--muted)}
+.shareform .approve input{flex:none;width:18px;height:18px;padding:0;margin:0}
+.newshare{border:1px solid var(--accent);background:var(--accent-soft);border-radius:14px;padding:14px 16px;margin-top:12px}
+.codebox{display:flex;flex-wrap:wrap;gap:6px 14px;align-items:center;border-top:1px dashed var(--line);margin-top:10px;padding-top:10px}
+.codebox>div{display:flex;flex-direction:column}.codebox p{flex:1 1 220px;margin:0}
+.code{font-family:ui-monospace,Consolas,monospace;font-size:28px;letter-spacing:.12em;color:var(--ink)}
+.codeline{margin-top:8px}
+.reqbox{display:flex;flex-wrap:wrap;gap:10px;justify-content:space-between;align-items:center;border:2px solid var(--watch);background:var(--watch-soft);border-radius:14px;padding:12px 14px;margin:10px 0}
+.reqbox .acts{display:flex;gap:6px}.btn.sm.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+</style>
+
+</head>
+<body>
+<div class="page">
+  <div class="bar">
+    <div class="logo">My Vita<b>Lens</b></div>
+    <div class="tools">
+      <label class="small muted" for="lang">AI language</label>
+      <select id="lang" class="sel"><option value="en">English</option><option value="hi">हिन्दी</option><option value="gu">ગુજરાતી</option><option value="es">Español</option><option value="fr">Français</option></select>
+      <span class="small muted" id="who" hidden></span><button type="button" class="btn" id="signout" hidden>Sign out</button>
+    </div>
+  </div>
+  <main id="app"><div class="card">Loading…</div></main>
+  <p class="disc">VitaLens explains changes in your own health data. It does not diagnose and does not replace your doctor. Prototype using PranaChain's synthetic patient data.</p>
+  <footer>VitaLens v1.2 · Team VitaLens, COMP 8967, Group 1 · Built with AI assistance</footer>
+</div>
+
+<script src="card.js"></script>
+<script>
+(function(){
+const $=id=>document.getElementById(id);
+const esc=s=>String(s==null?"":s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const MON=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"],MONL=["January","February","March","April","May","June","July","August","September","October","November","December"];
+const MONTHS=Array.from({length:12},(_,i)=>({m:(8+i)%12}));
+const W0=Date.UTC(2025,8,1),W1=Date.UTC(2026,8,1);
+const t2=s=>{const [y,m,d]=s.split("-").map(Number);return Date.UTC(y,m-1,d||1)};
+const fmtM=s=>{if(!s)return"";const [y,m]=s.split("-").map(Number);return `${MONL[m-1]} ${y}`};
+const n1=(v,d=1)=>v==null?"–":(Math.abs(v)>=1000?Math.round(v).toLocaleString("en-US"):(+v).toFixed(d));
+const store={get(k,d){try{const v=localStorage.getItem(k);return v?JSON.parse(v):d}catch(e){return d}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}};
+
+/* ---------- plain-language dictionary ---------- */
+const NAMES={sbp:"Blood pressure (top number)",dbp:"Blood pressure (bottom number)",rhr:"Resting heart rate",hrv:"Heart rate variability",sleep:"Sleep",stress:"Stress score",steps:"Daily steps",active:"Active minutes",sedentary:"Sitting time",weight:"Weight",
+  "HbA1c":"HbA1c (3-month blood sugar)","Fasting glucose":"Morning blood sugar","LDL cholesterol":"LDL ('bad' cholesterol)","HDL cholesterol":"HDL ('good' cholesterol)","Triglycerides":"Triglycerides (blood fats)","Total cholesterol":"Total cholesterol",
+  "TSH":"TSH (thyroid signal)","Free T4":"Free T4 (thyroid hormone)","Hemoglobin":"Hemoglobin (red blood cells)","Ferritin":"Ferritin (iron stores)","Vitamin D":"Vitamin D","Vitamin B12":"Vitamin B12"};
+const WHAT={sbp:"The pressure in your arteries when your heart beats, from your home cuff. Under 130 is the usual target.",
+  dbp:"The pressure between heartbeats. Under 80 is the usual target.",rhr:"How many times your heart beats in a minute while you rest. Lower usually means your heart works easily.",
+  hrv:"Tiny differences in time between heartbeats. Higher usually means your body is well rested.",sleep:"Hours of sleep each night, from your watch or band.",
+  stress:"Your watch's stress score. Lower is calmer.",steps:"Steps you walk each day.",active:"Minutes each day you were moving briskly.",sedentary:"Hours each day spent sitting.",weight:"Your weight from the smart scale.",
+  bp:"How often your home blood pressure was 130/80 or higher. Fewer days is better.",
+  "HbA1c":"Your average blood sugar over the last 2–3 months. Under 5.7% is the normal range.","Fasting glucose":"Your blood sugar after not eating overnight.",
+  "LDL cholesterol":"The cholesterol that can build up in blood vessels. Lower is better.","HDL cholesterol":"The cholesterol that helps clear the bad kind. Higher is better.",
+  "Triglycerides":"A type of fat in your blood. Lower is better.","Total cholesterol":"All the cholesterol in your blood.","TSH":"A signal from your brain telling the thyroid how hard to work.",
+  "Free T4":"The main thyroid hormone, which sets your body's energy speed.","Hemoglobin":"Carries oxygen in red blood cells. Low can make you tired.","Ferritin":"How much iron your body has stored.",
+  "Vitamin D":"Helps bones and muscles. Low is common in Canadian winters.","Vitamin B12":"Helps nerves and blood cells."};
+const GOODUP=new Set(["hrv","sleep","steps","active"]);
+const MEDWHY={"Metformin":"helps your body use sugar","Metformin XR":"helps your body use sugar","Atorvastatin":"lowers cholesterol","Amlodipine":"lowers blood pressure","Levothyroxine":"replaces thyroid hormone","Ferrous sulfate":"iron tablet","Cholecalciferol":"vitamin D supplement","Vitamin D3":"vitamin D supplement","Sumatriptan":"for migraines","Pantoprazole":"reduces stomach acid","Budesonide/formoterol":"asthma inhaler"};
+
+/* ---------- areas of the body ---------- */
+const AREAS={
+  sugar:{name:"Blood sugar",intro:"How well your body keeps the sugar in your blood steady.",sig:[],labs:["HbA1c","Fasting glucose"],meds:["Metformin","Metformin XR"],sym:["Increased thirst","Frequent urination"],x:100,y:180,
+    qs:["Should I repeat my HbA1c test soon?","Is my diabetes medicine working for me?","What changes would help my blood sugar most?"]},
+  heart:{name:"Heart & blood pressure",intro:"Your heart, blood pressure and the fats in your blood.",sig:["sbp","dbp","rhr","hrv"],bp:true,labs:["LDL cholesterol","HDL cholesterol","Triglycerides","Total cholesterol"],meds:["Amlodipine","Atorvastatin"],sym:["Dizziness"],x:114,y:126,
+    qs:["Is my blood pressure where it should be?","Is my cholesterol medicine working?","How often should I check my blood pressure at home?"]},
+  sleep:{name:"Sleep & stress",intro:"How you sleep and how stressed your body is.",sig:["sleep","stress"],labs:[],meds:["Sumatriptan"],sym:["Poor sleep","Headache","Migraine headache"],x:100,y:38,
+    qs:["Could my sleep be affecting my other results?","What can I do about stress?"]},
+  thyroid:{name:"Thyroid",intro:"The gland in your neck that sets your body's energy speed.",sig:[],labs:["TSH","Free T4"],meds:["Levothyroxine"],sym:[],x:100,y:76,qs:["Is my thyroid dose right for me?"]},
+  cycle:{name:"Cycle",intro:"Your period cycle: how long and how regular it is.",sig:[],labs:[],meds:[],sym:["Menstrual cramps","Irregular cycle"],cycles:true,female:true,x:100,y:224,
+    qs:["Are my long cycles something to look into?","Could my weight or sleep affect my cycle?"]},
+  activity:{name:"Activity",intro:"How much you move during the day.",sig:["steps","active","sedentary"],labs:[],meds:[],sym:[],x:84,y:300,qs:["How much activity is right for me?"]},
+  body:{name:"Weight & nutrition",intro:"Your weight, vitamins and iron.",sig:["weight"],labs:["Vitamin D","Vitamin B12","Hemoglobin","Ferritin"],meds:["Cholecalciferol","Vitamin D3","Ferrous sulfate"],sym:["Fatigue"],x:138,y:196,qs:["Is my weight change something to talk about?","Are my vitamin and iron levels OK now?"]}
+};
+const ORDER=["sugar","heart","sleep","thyroid","cycle","activity","body"];
+const RANK=["worse","watch","better","steady","nodata"];
+const STW={worse:"Getting worse",watch:"Worth a check",better:"Getting better",steady:"Steady",nodata:"No data"};
+
+let P=null,view="login",areaKey=null;
+
+/* ---------- one patient's data into plain findings ---------- */
+function findings(k){
+  const A=AREAS[k],out=[];
+  A.sig.forEach(s=>{const t=P.trends[s];if(!t||t.baseline==null||t.recent==null)return;const ch=t.direction!=="stable";const up=t.change>0;
+    const good=ch&&(GOODUP.has(s)?up:!up);out.push({kind:"sig",key:s,name:NAMES[s],now:t.recent,usual:t.baseline,unit:t.unit,dec:t.dec,monthly:t.monthly,tol:t.tol,
+      state:!ch?"steady":good?"better":"worse",up})});
+  if(A.bp&&P.bp_target&&P.bp_target.baseline!=null){const b=P.bp_target,d=b.recent-b.baseline;out.push({kind:"bp",key:"bp",name:"Days at or above 130/80",now:b.recent,usual:b.baseline,unit:"% of days",dec:0,monthly:b.monthly,tol:10,
+    state:d>=10?"worse":d<=-10?"better":b.recent>=50?"watch":"steady",up:d>0})}
+  A.labs.forEach(l=>{const L=P.labs[l];if(!L||L.last==null)return;const st=L.direction==="worse"?"worse":L.direction==="better"?(L.last_outside?"watch":"better"):L.last_outside?"watch":"steady";
+    out.push({kind:"lab",key:l,name:NAMES[l]||l,now:L.last,usual:L.first,unit:L.unit,dec:L.unit==="%"?2:1,L,state:st,up:L.change>0})});
+  return out;
+}
+function areaStatus(k){
+  const A=AREAS[k];if(A.female&&P.sex!=="Female")return null;
+  const f=findings(k);let has=f.length;
+  if(A.cycles&&P.cycles)has++;
+  if(A.meds.some(m=>P.meds.some(x=>x.medication===m)))has++;
+  if(!has)return"nodata";
+  if(f.some(x=>x.state==="worse"))return"worse";
+  if(A.cycles&&P.cycles&&(P.cycles.mean>35||P.cycles.long>=2))return"watch";
+  if(f.some(x=>x.state==="watch"))return"watch";
+  if(f.some(x=>x.state==="better"))return"better";
+  return"steady";
+}
+function sentence(f){
+  const u=f.unit==="%"?"%":" "+f.unit;
+  if(f.state==="steady")return `${f.name} stayed close to your usual (${n1(f.now,f.dec)}${u}).`;
+  if(f.kind==="lab")return `${f.name} ${f.up?"went up":"went down"} from ${n1(f.usual,f.dec)} to ${n1(f.now,f.dec)}${u}`+(f.L.last_outside?`, outside the normal range (${f.L.ref}).`:".");
+  return `${f.name}: ${n1(f.now,f.dec)}${u} recently, ${f.up?"up":"down"} from ${n1(f.usual,f.dec)} usually.`;
+}
+function areaLine(k){
+  const st=areaStatus(k),f=findings(k);
+  if(st==="nodata")return"No readings for this yet.";
+  if(k==="cycle"&&P.cycles)return `Average cycle ${P.cycles.mean} days; ${P.cycles.long} of ${P.cycles.n} longer than 35 days.`;
+  const top=f.find(x=>x.state===st)||f[0];return top?sentence(top):"Medicines on record, no test results yet.";
+}
+
+/* ---------- sign-in: each person gets only their own data ----------
+   server mode (start_demo.bat): the server checks the password and sends back only that person's record.
+   preview mode (published link, no server): a few demo accounts; each file is named by a hash of ID + password,
+   so it can only be found by someone who knows that password. */
+let MODE="server";
+async function boot(){
+  try{const r=await fetch("api/health",{cache:"no-store"});const j=r.ok?await r.json():null;MODE=j&&j.status==="ok"?"server":"preview";API_OK=!!(j&&j.provider&&j.provider!=="rule-based")}catch(e){MODE="preview"}
+  if(MODE==="server"){try{const r=await fetch("api/me",{cache:"no-store"});if(r.ok){P=await r.json();return showMe()}}catch(e){}}
+  else{const h=sessionGet();if(h){try{const r=await fetch(`preview/${h}.json`);if(r.ok){P=await r.json();return showMe()}}catch(e){}}}
+  renderLogin();
+}
+function sessionGet(){try{return sessionStorage.getItem("vl-preview")}catch(e){return null}}
+function sessionSet(v){try{v?sessionStorage.setItem("vl-preview",v):sessionStorage.removeItem("vl-preview")}catch(e){}}
+async function sha256(t){const b=await crypto.subtle.digest("SHA-256",new TextEncoder().encode(t));return [...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,"0")).join("")}
+function showMe(){$("signout").hidden=false;$("who").hidden=false;$("who").textContent=`Signed in as ${P.id}`;view="home";render()}
+async function signIn(id,pw){
+  id=id.trim().toUpperCase();pw=pw.trim();if(!id||!pw)return "Enter your ID and password.";
+  if(MODE==="server"){const r=await fetch("api/login",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({id,password:pw})});
+    if(!r.ok){const j=await r.json().catch(()=>({}));return j.detail||"Could not sign in."}
+    const m=await fetch("api/me",{cache:"no-store"});if(!m.ok)return "Could not load your data.";P=await m.json()}
+  else{const h=await sha256(`${id}:${pw}`);const r=await fetch(`preview/${h}.json`);if(!r.ok)return "That ID and password don't match.";P=await r.json();sessionSet(h)}
+  showMe();return null;
+}
+async function signOut(){if(MODE==="server"){try{await fetch("api/logout",{method:"POST"})}catch(e){}}else sessionSet(null);
+  P=null;$("signout").hidden=true;$("who").hidden=true;renderLogin();window.scrollTo({top:0})}
+
+/* ---------- screens ---------- */
+function renderLogin(){
+  view="login";
+  $("app").innerHTML=`<div class="grid"><section class="card"><h1>Understand your own health, in simple words</h1>
+    <p class="muted" style="margin-top:8px;max-width:62ch">VitaLens looks at a year of your readings, compares them with your own usual, and tells you what changed, why it may matter, and what to ask your doctor.</p>
+    <ul class="qs" style="margin-top:14px"><li>✓ Your results explained in plain words, in your language</li><li>✓ What changed since you started a medicine</li><li>✓ A summary to bring to your doctor</li></ul></section>
+    <section class="card"><h2>Sign in</h2>
+    <form id="loginform" class="login" autocomplete="on">
+      <label for="lid">Your VitaLens ID</label><input id="lid" name="username" placeholder="e.g. PC0412" autocomplete="username" autocapitalize="characters" required>
+      <label for="lpw">Password</label><input id="lpw" name="password" type="password" autocomplete="current-password" required>
+      <label class="small muted show"><input type="checkbox" id="showpw"> Show password</label>
+      <button type="submit" class="btn primary" id="lbtn">Sign in</button><p class="err" id="lerr" role="alert"></p></form>
+    <p class="small muted" style="margin-top:12px">🔒 You will only see your own data. Nobody else can see yours.</p>
+    ${MODE==="preview"?`<details class="small" style="margin-top:12px"><summary>Preview: demo accounts</summary><p class="muted" style="margin-top:6px">This preview link holds only a few demo people from PranaChain's synthetic data. Ask the VitaLens team for a demo login.</p></details>`:""}
+    </section></div>`;
+}
+let scenKey=null;
+function render(){if(view==="home"){renderHome();if(MODE==="server")afterHome()}else if(view==="area")renderArea(areaKey);else if(view==="scenario")renderScenario(scenKey);window.scrollTo({top:0})}
+
+function bodyMap(){
+  const fem=P.sex==="Female";
+  const spots=ORDER.map(k=>{const st=areaStatus(k);if(!st)return"";const A=AREAS[k];const col={worse:"var(--worse)",watch:"var(--watch)",better:"var(--better)",steady:"var(--steady)",nodata:"var(--muted)"}[st];
+    return `<g class="hot ${st==="worse"||st==="watch"?"pulse":""}" data-area="${k}" role="button" tabindex="0" aria-label="${A.name}: ${STW[st]}"><circle class="ring" cx="${A.x}" cy="${A.y}" r="11" stroke="${col}"/><circle cx="${A.x}" cy="${A.y}" r="9" fill="${st==="nodata"?"var(--card)":col}" stroke="${col}" stroke-width="2"/><title>${A.name}: ${STW[st]}</title></g>`}).join("");
+  return `<svg viewBox="0 0 200 400" role="img" aria-label="Body map with your health areas">
+    <g fill="var(--skin)" stroke="var(--skin-line)" stroke-width="2">
+      <ellipse cx="100" cy="40" rx="24" ry="28"/><rect x="90" y="64" width="20" height="22" rx="6"/>
+      <path d="M58 92 Q100 80 142 92 L148 168 Q140 ${fem?232:226} 132 ${fem?244:236} L68 ${fem?244:236} Q60 ${fem?232:226} 52 168 Z"/>
+      <path d="M58 94 Q40 100 36 130 L28 214 Q30 224 40 222 L50 140 Z"/><path d="M142 94 Q160 100 164 130 L172 214 Q170 224 160 222 L150 140 Z"/>
+      <path d="M70 236 L96 236 L94 382 Q84 390 72 384 Z"/><path d="M104 236 L130 236 L128 384 Q116 390 106 382 Z"/>
+    </g>${spots}</svg>`;
+}
+/* ---------- the three main health checks (PranaChain's scenarios) ---------- */
+const SC={
+  metabolic:{name:"Metabolic",sub:"Type 2 diabetes risk",area:"sugar",intro:"How your body handles sugar. Changes here are early signs of type 2 diabetes risk."},
+  cardio:{name:"Cardiovascular",sub:"Heart and blood vessel risk",area:"heart",intro:"Blood pressure, cholesterol and the habits that affect your heart."},
+  pcos:{name:"PCOS",sub:"Women's health",area:"cycle",intro:"Hormones and your monthly cycle. PCOS often shows as long or irregular cycles and changes in blood sugar."}};
+const SCORDER=["metabolic","cardio","pcos"];
+const SST={worsening:["worse","Getting worse"],needs_review:["watch","Worth a check"],mixed:["watch","Mixed"],improving_above_target:["watch","Improving, still above target"],improving:["better","Getting better"],stable:["steady","Steady"]};
+function scen(k){const S=P.scenarios&&P.scenarios[k];if(!S)return null;const st=SST[S.status]||["steady",S.status];return {S,cls:st[0],label:st[1]}}
+function evDir(e){return e.dir==="worse"?"worse":e.dir==="better"?"better":e.dir==="flag"?"watch":"steady"}
+function evVal(e){
+  if(e.kind==="cycle")return `${n1(e.to,1)} days on average · ${e.long} of ${e.n} over 35`;
+  if(e.kind==="symptom")return `${e.to} reports this year`;
+  const u=e.unit==="%"?"%":" "+e.unit;return `${n1(e.from,e.unit==="%"?2:1)} → ${n1(e.to,e.unit==="%"?2:1)}${u}`;
+}
+function evRows(S,max){const ev=S.evidence.filter(e=>e.kind!=="response");const o={worse:0,watch:1,better:2,steady:3};
+  const r=e=>e.kind==="cycle"?-1:o[evDir(e)];return ev.sort((a,b)=>r(a)-r(b)).slice(0,max).map(e=>`<li class="ev ev-${evDir(e)}"><span>${esc(NAMES[e.name]||e.name)}</span><b class="num">${esc(evVal(e))}</b></li>`).join("")}
+function scenCard(k){const C=SC[k],x=scen(k);
+  if(!x)return `<article class="scard c-na"><div class="scard-top"><div><h3>${C.name}</h3><span class="small muted">${C.sub}</span></div><span class="pill s-nodata">${k==="pcos"&&P.sex!=="Female"?"Doesn't apply":"Not a risk for you"}</span></div>
+    <p class="small muted">${k==="pcos"&&P.sex!=="Female"?"This check is for women's health.":"Your record didn't show signs of this risk at the start of the year, so it isn't one of your checks."}</p>
+    ${!(k==="pcos"&&P.sex!=="Female")&&areaStatus(C.area)&&areaStatus(C.area)!=="nodata"?`<button type="button" class="link small" data-area="${C.area}">See your ${AREAS[C.area].name.toLowerCase()} readings →</button>`:""}</article>`;
+  const S=x.S;
+  return `<article class="scard c-${x.cls}" data-scen="${k}" role="button" tabindex="0" aria-label="${C.name}: ${x.label}. See details">
+    <div class="scard-top"><div><h3>${C.name}</h3><span class="small muted">${C.sub}</span></div><span class="pill s-${x.cls}">${x.label}</span></div>
+    <div class="counts">${S.worse?`<span class="cw">${S.worse} worse</span>`:`<span class="cb">Nothing got worse</span>`}${S.better?`<span class="cb">${S.better} better</span>`:""}</div>
+    <ul class="evs">${evRows(S,3)}</ul>
+    ${S.above_target&&S.above_target.length?`<p class="target small">Still above target: <b>${S.above_target.map(t=>esc(NAMES[t]||t)).join(", ")}</b></p>`:""}
+    <span class="more">See details →</span></article>`;
+}
+const TABS=[["overview","Overview"],["ai","Ask & explain"],["meds","Medicines"],["docs","Documents"],["share","Sharing & safety"]];
+let tab=store.get("vl-tab","overview");
+function tabsHTML(){return `<nav class="tabs" role="tablist" aria-label="Sections">${TABS.filter(([t])=>MODE==="server"||!["docs","share"].includes(t)).map(([t,n])=>`<button type="button" class="tab" role="tab" data-tab="${t}" aria-selected="${t===tab}">${n}</button>`).join("")}</nav>`}
+
+function renderHome(){
+  if(!TABS.some(([t])=>t===tab))tab="overview";
+  const areas=ORDER.filter(k=>areaStatus(k));
+  const notes=store.get("vl-notes-"+P.id,[]);
+  const meds=dedupeMeds();const picked=store.get("vl-q-"+P.id,[]);
+  const app=SCORDER.map(scen).filter(Boolean),nW=app.filter(x=>x.cls==="worse").length,nWatch=app.filter(x=>x.cls==="watch").length;
+  const head=!app.length?"None of the three main checks apply to you":nW?`${nW} health check${nW>1?"s are":" is"} getting worse`:nWatch?`Your health checks need a look`:`Your health checks are steady or improving`;
+  let body="";
+  if(tab==="overview")body=`
+    <section class="hero"><span class="eyebrow">${P.id} · ${P.age} · ${esc(P.sex)} · September 2025 to August 2026</span>
+      <h1>${head}</h1><p class="muted">Your three main health checks, compared with your own first three months, not with other people.</p></section>
+    <div class="scen-grid">${SCORDER.map(scenCard).join("")}</div>
+    <section class="card"><div class="bar"><div><h2>Explain my year in simple words</h2><p class="small muted">A short summary in your language, checked before you see it.</p></div><button type="button" class="btn primary" id="explain">Explain</button></div>
+      <div class="aiout" id="aiout">${esc(P.ai.rule_text)}</div><ul class="checks" id="aichecks" hidden></ul><div class="src" id="aisrc">Short summary built from your data. Tap Explain for a friendlier AI version.</div></section>
+    <section class="card"><h2>Everything else we looked at</h2><p class="small muted">Tap any area to see the details.</p>
+      <div class="area-grid">${areas.map(k=>{const st=areaStatus(k);return `<button type="button" class="area" data-area="${k}"><span class="t">${AREAS[k].name}<span class="pill s-${st}">${STW[st]}</span></span><span class="s">${esc(areaLine(k))}</span></button>`}).join("")}</div></section>`;
+  if(tab==="ai")body=`<div class="two">
+    <section class="card" id="askcard"><h2>Ask VitaLens</h2><p class="small muted">Ask anything about your own results. Answers use only your data and are checked before you see them.</p>
+      <div class="chips">${suggestions().map(q=>`<button type="button" class="chip" data-ask="${esc(q)}">${esc(q)}</button>`).join("")}</div>
+      <div class="chat" id="chat" aria-live="polite"></div>
+      <form class="askrow" id="askform"><input id="askq" placeholder="Type your question…" aria-label="Your question" autocomplete="off"><button type="submit" class="btn primary" id="askbtn">Ask</button></form></section>
+    <section class="card"><h2>What's been happening?</h2><p class="small muted">Life changes help explain your readings. VitaLens uses these notes in its answers.</p>
+      <div class="chips">${["Started a new job","Travel","Illness or injury","Missed some medicine","Family event","Fasting or diet change","Poor sleep","More stress"].map(n=>`<button type="button" class="chip" data-note="${esc(n)}" aria-pressed="${notes.some(x=>x.t===n)}">${esc(n)}</button>`).join("")}</div>
+      <ul class="notes" id="notes">${notesHTML(notes)}</ul>
+      <form class="addnote" id="noteform"><input id="notein" placeholder="Your own note, e.g. 'Moved house in March'" aria-label="Your note"><button type="submit" class="btn">Add</button></form></section></div>`;
+  if(tab==="meds")body=`<div class="two">
+    <section class="card"><h2>Your medicines</h2>${meds.length?`<ul class="meds">${meds.map(medHTML).join("")}</ul>`:`<p class="muted">No medicines on your record.</p>`}</section>
+    ${MODE==="server"&&meds.length?`<section class="card" id="dosecard"><h2>Did you take your medicines today?</h2><p class="small muted">Tap once a day. Your doctor sees how often you took them, and VitaLens can tell if a change is from the medicine or from missed days.</p>
+      <ul class="dosegrid" id="doses"><li class="small muted">Loading…</li></ul>
+      <div class="remrow"><label class="small" for="remtime">Daily reminder at</label><input type="time" id="remtime" value="${esc(store.get("vl-remtime","20:00"))}"><a class="btn sm" id="remlink" href="api/me/reminder.ics?time=${esc(store.get("vl-remtime","20:00"))}" download>Add to my calendar</a></div></section>`:""}</div>`;
+  if(tab==="docs")body=`<section class="card"><h2>Your medical documents</h2><p class="small muted">Keep lab reports, prescriptions and scans in one place. Doctors you share a link with can open them, and every opening is logged.</p>
+      <form class="docform" id="docform">
+        <label class="drop" id="drop" for="docfile"><input type="file" id="docfile" accept=".pdf,.jpg,.jpeg,.png,.webp,application/pdf,image/jpeg,image/png,image/webp">
+          <span id="dropmsg"><b>Choose a file</b> or drag it here<br><span class="small muted">PDF, JPG, PNG or WebP · up to 10 MB</span></span></label>
+        <div class="docmeta"><input id="doctitle" maxlength="120" placeholder="Name, e.g. July blood test" aria-label="Document name">
+          <select id="dockind" class="sel" aria-label="Type">${DOCKINDS.map(k=>`<option>${esc(k)}</option>`).join("")}</select>
+          <input type="date" id="docdate" aria-label="Date of the document"><button type="submit" class="btn primary" id="docbtn">Upload</button></div>
+        <p class="small" id="docmsg" aria-live="polite"></p></form>
+      <ul class="doclist" id="docs"><li class="small muted">Loading…</li></ul></section>`;
+  if(tab==="share")body=`<div class="two">
+    <section class="card own" id="owncard"><h2>Share with a doctor</h2><p class="small muted">Create a link for as long as you choose. The doctor also needs a 6-digit access code from you. Stop sharing any time.</p>
+      <div id="reqs"></div>
+      <form class="shareform" id="shareform"><input id="shlabel" maxlength="80" placeholder="Who is it for? e.g. Dr. Shah" aria-label="Who is it for"><select id="shhours" class="sel" aria-label="For how long"><option value="2">2 hours</option><option value="24" selected>1 day</option><option value="168">1 week</option><option value="720">30 days</option></select><button class="btn primary" type="submit">Create link</button>
+        <label class="small approve"><input type="checkbox" id="shapprove" checked> Ask me to approve each person before they can see anything</label></form>
+      <div id="newshare"></div>
+      <ul class="links" id="links"></ul>
+      <div class="bar" style="margin-top:18px"><h3>Who saw my record</h3><span id="chain"></span></div>
+      <ul class="log" id="log"><li class="small muted">Loading…</li></ul></section>
+    <div class="col">
+    <section class="card emerg" id="emergcard"><h2>Emergency travel card</h2><p class="small muted">If you fall ill away from home, anyone can scan your QR code to see your blood group, allergies and medicines, in their language. Nothing else is shown, and every scan is logged.</p>
+      <div class="bar" style="margin-top:12px"><button class="btn primary" type="button" id="openemerg">Show my emergency card</button></div></section>
+    <section class="card"><h2>Get ready for your doctor visit</h2><p class="small muted">Tick the questions you want to ask, then copy the summary to bring along.</p>
+      <ul class="qs">${visitQs().map((q,i)=>`<li><label for="vq${i}"><input type="checkbox" id="vq${i}" data-q="${esc(q)}" ${picked.includes(q)?"checked":""}><span>${esc(q)}</span></label></li>`).join("")}</ul>
+      <div class="bar" style="margin-top:12px"><button type="button" class="btn primary" id="copysum">Copy my summary</button><span class="small muted" id="copymsg" aria-live="polite"></span></div>
+      <pre class="summary" id="summary" hidden></pre></section></div></div>`;
+  $("app").innerHTML=tabsHTML()+`<div class="panel">${body}</div>`;
+}
+
+function renderScenario(k){
+  const C=SC[k],x=scen(k);if(!x){view="home";return renderHome()}
+  areaKey=C.area;const S=x.S,picked=store.get("vl-q-"+P.id,[]),A=AREAS[C.area]||{qs:[]};
+  const tiles=S.evidence.filter(e=>e.kind!=="response").map(e=>{let chart="",extra="";
+    if(e.kind==="lab"&&P.labs[e.name]){const L=P.labs[e.name];chart=sparkSVG({kind:"lab",L,name:e.name});extra=`Normal range ${esc(L.ref)}`}
+    else if(e.kind==="signal"&&e.key&&P.trends[e.key]){const t=P.trends[e.key];chart=sparkSVG({kind:"sig",monthly:t.monthly,usual:t.baseline,tol:t.tol,name:e.name});extra="Shaded band = your usual range"}
+    else if(e.kind==="cycle")extra=`Typical cycle 21–35 days`;
+    return `<div class="tile"><span class="n">${esc(NAMES[e.name]||e.name)}<span class="pill s-${evDir(e)}">${{worse:"Getting worse",better:"Getting better",watch:"Worth a check",steady:"Steady"}[evDir(e)]}</span></span>
+      <span class="v num">${esc(evVal(e))}</span><span class="u">${extra}</span>${chart}${e.note?`<span class="what">${esc(e.note)}</span>`:`<span class="what">${esc(WHAT[e.name]||WHAT[e.key]||"")}</span>`}</div>`}).join("");
+  const seen=new Set(),resp=S.evidence.filter(e=>e.kind==="response"&&!seen.has(e.name)&&seen.add(e.name));
+  $("app").innerHTML=tabsHTML()+`<div class="panel">
+    <section class="card"><button type="button" class="link" id="home">← Back to overview</button>
+      <div class="bar" style="margin-top:10px"><div><h1>${C.name}</h1><span class="muted">${C.sub}</span></div><span class="pill s-${x.cls} big">${x.label}</span></div>
+      <p class="muted" style="margin-top:8px">${C.intro}</p>
+      <div class="counts" style="margin-top:12px"><span class="cw">${S.worse} getting worse</span><span class="cb">${S.better} getting better</span>${S.above_target&&S.above_target.length?`<span class="ct">Still above target: ${S.above_target.map(t=>esc(NAMES[t]||t)).join(", ")}</span>`:""}</div></section>
+    <div class="two">
+      <section class="card"><h2>Why this check is on your record</h2><ul class="why">${(S.context||[]).map(c=>`<li><span>${esc(c.text)}</span>${c.date?`<span class="small muted">${esc(c.date)}</span>`:""}</li>`).join("")||`<li class="muted">From your readings this year.</li>`}</ul></section>
+      ${resp.length?`<section class="card"><h2>Since starting your medicine</h2>${resp.map(r=>`<h3 style="margin-top:6px">${esc(r.name)} <span class="small muted">from ${esc(r.start)}</span></h3><ul class="evs">${r.items.map(i=>`<li class="ev ev-${i.meaningful?(["HDL cholesterol"].includes(i.name)?(i.change>0?"better":"worse"):(i.change>0?"worse":"better")):"steady"}"><span>${esc(NAMES[i.name]||i.name)}${i.meaningful?"":` <span class="small muted">(no real change)</span>`}</span><b class="num">${n1(i.before,i.unit==="%"?2:1)} → ${n1(i.after,i.unit==="%"?2:1)} ${esc(i.unit)}</b></li>`).join("")}</ul>`).join("")}</section>`:`<section class="card"><h2>Since starting your medicine</h2><p class="muted">No medicine linked to this check.</p></section>`}
+    </div>
+    <section class="card"><h2>What changed this year</h2><div class="tiles">${tiles}</div></section>
+    <section class="card"><h2>Questions to ask your doctor</h2><ul class="qs">${A.qs.map((q,i)=>`<li><label for="sq${i}"><input type="checkbox" id="sq${i}" data-q="${esc(q)}" ${picked.includes(q)?"checked":""}><span>${esc(q)}</span></label></li>`).join("")}</ul>
+      <button type="button" class="btn primary" style="margin-top:14px" data-askscen="${k}">Ask VitaLens about this</button></section></div>`;
+}
+const DOCKINDS=["Lab report","Prescription","Imaging / scan","Doctor's letter","Discharge summary","Vaccination","Other"];
+
+function dedupeMeds(){const seen=new Set();return P.meds.filter(m=>{if(seen.has(m.medication))return false;seen.add(m.medication);return true})}
+function medHTML(m){
+  const a=P.adherence.find(x=>x.medication===m.medication),r=P.responses.find(x=>x.medication===m.medication);
+  const ch=r?r.items.filter(i=>i.meaningful&&i.kind!=="symptom"&&i.before!=null&&i.after!=null):[];
+  const d=i=>i.unit==="%"?2:1;
+  return `<li><b>${esc(m.medication)}</b> <span class="small muted">${esc(m.dose||"")} · ${esc(MEDWHY[m.medication]||m.indication||"")}</span>
+    <div class="small muted">Started ${fmtM(m.start)}${m.status&&m.status!=="Active"?" · "+esc(m.status):""}</div>
+    ${ch.length?`<div class="small" style="margin-top:4px">Since starting: ${ch.map(i=>`${esc(NAMES[i.name]||i.name)} ${n1(i.before,d(i))} → <b>${n1(i.after,d(i))}</b> ${esc(i.unit)}`).join("; ")}</div>`:r?`<div class="small muted" style="margin-top:4px">No clear change yet in the results it targets.</div>`:""}
+    ${a&&a.mean!=null?`<div class="small" style="margin-top:6px">You took it on about <b>${Math.round(a.mean)}%</b> of days${a.months_below_80?` · ${a.months_below_80} month${a.months_below_80>1?"s":""} below 80%`:""}</div><div class="meter"><i class="${a.mean<80?"low":""}" style="width:${Math.max(3,Math.min(100,a.mean))}%"></i></div>`:""}</li>`;
+}
+function suggestions(){
+  const s=[],st=k=>areaStatus(k);
+  if(st("sugar")==="worse"||st("sugar")==="watch")s.push("Why is my blood sugar going up?");
+  if(st("heart")==="worse"||st("heart")==="watch")s.push("What is happening with my heart and cholesterol?");
+  if(st("cycle")==="watch")s.push("Why are my cycles long?");
+  if(P.meds.length)s.push("Is my medicine working?");
+  s.push("What does HbA1c mean?","What should I ask my doctor?");
+  return [...new Set(s)].slice(0,4);
+}
+function visitQs(){const q=[];ORDER.forEach(k=>{const st=areaStatus(k);if(st==="worse"||st==="watch")q.push(...AREAS[k].qs)});if(!q.length)q.push("Is there anything I should keep an eye on?","When should I have my next check-up?");return [...new Set(q)].slice(0,7)}
+function notesHTML(n){return n.map((x,i)=>`<li><span>${esc(x.t)} <span class="muted small">· added ${esc(x.d)}</span></span><button type="button" data-delnote="${i}" aria-label="Remove note">✕</button></li>`).join("")}
+
+/* ---------- area page ---------- */
+function sparkSVG(f){
+  const Wd=300,Hd=110,ml=34,mr=6,mt=8,mb=18,pw=Wd-ml-mr,ph=Hd-mt-mb;
+  let pts,lo,hi,band;
+  if(f.kind==="lab"){pts=f.L.points.map(([d,v])=>[Math.max(0,Math.min(1,(t2(d)-W0)/(W1-W0))),v]);const vs=pts.map(p=>p[1]);
+    band=[f.L.lo??Math.min(...vs),f.L.hi??Math.max(...vs)];lo=Math.min(...vs,band[0]);hi=Math.max(...vs,band[1])}
+  else{pts=(f.monthly||[]).map((v,i)=>v==null?null:[(i+.5)/12,v]).filter(Boolean);const vs=pts.map(p=>p[1]);band=[f.usual-f.tol,f.usual+f.tol];lo=Math.min(...vs,band[0]);hi=Math.max(...vs,band[1])}
+  if(!pts.length)return"";
+  const pad=(hi-lo)*.15||1;lo-=pad;hi+=pad;const X=x=>ml+x*pw,Y=v=>mt+(1-(v-lo)/(hi-lo))*ph;const fm=v=>Math.abs(v)>=100?Math.round(v):(+v).toFixed(1);
+  let s=`<svg viewBox="0 0 ${Wd} ${Hd}" role="img" aria-label="${esc(f.name)} over the year">`;
+  s+=`<rect x="${ml}" y="${Y(band[1])}" width="${pw}" height="${Math.max(0,Y(band[0])-Y(band[1]))}" fill="var(--accent-soft)"/>`;
+  s+=`<text x="${ml-5}" y="${Y(band[1])+4}" text-anchor="end" font-size="10" fill="var(--muted)">${fm(band[1])}</text><text x="${ml-5}" y="${Y(band[0])+4}" text-anchor="end" font-size="10" fill="var(--muted)">${fm(band[0])}</text>`;
+  [0,3,6,9].forEach(i=>{s+=`<text x="${X(i/12)}" y="${Hd-4}" font-size="10" fill="var(--muted)">${MON[MONTHS[i].m]}</text>`});
+  if(f.kind==="lab"){((AREAS[areaKey]||{}).meds||[]).forEach(mn=>{const m=P.meds.find(x=>x.medication===mn);if(!m||!m.start)return;const x=(t2(m.start)-W0)/(W1-W0);if(x<0||x>1)return;
+    s+=`<line x1="${X(x)}" x2="${X(x)}" y1="${mt}" y2="${mt+ph}" stroke="var(--accent)" stroke-dasharray="3 3"/><text x="${X(x)+3}" y="${mt+9}" font-size="9.5" fill="var(--accent)">${esc(mn)} starts</text>`})}
+  s+=`<polyline points="${pts.map(([x,v])=>X(x).toFixed(1)+","+Y(v).toFixed(1)).join(" ")}" fill="none" stroke="var(--steady)" stroke-width="2" opacity=".75"/>`;
+  pts.forEach(([x,v])=>{const out=v<band[0]||v>band[1];s+=`<circle cx="${X(x).toFixed(1)}" cy="${Y(v).toFixed(1)}" r="3.4" fill="${out?"var(--worse)":"var(--accent)"}"/>`});
+  return s+"</svg>";
+}
+function renderArea(k){
+  const A=AREAS[k],st=areaStatus(k),f=findings(k);
+  const meds=dedupeMeds().filter(m=>A.meds.includes(m.medication));
+  const sym=A.sym.map(n=>[n,P.symptoms.filter(x=>x[1]===n).length]).filter(x=>x[1]);
+  const changed=f.filter(x=>x.state!=="steady").sort((a,b)=>RANK.indexOf(a.state)-RANK.indexOf(b.state));
+  const picked=store.get("vl-q-"+P.id,[]);
+  $("app").innerHTML=`<div class="grid"><div class="col"><section class="card"><button type="button" class="link" id="home">← Back to my year</button>
+    <div class="bar" style="margin-top:10px"><h1>${A.name}</h1><span class="pill s-${st}">${STW[st]}</span></div>
+    <p class="muted" style="margin-top:4px">${A.intro}</p>
+    <p class="say">${changed.length?changed.slice(0,3).map(sentence).map(esc).join(" "):k==="cycle"&&P.cycles?esc(areaLine(k)):"Your readings here stayed close to your usual this year."}</p>
+    <div class="tiles">${f.map(x=>`<div class="tile"><span class="n">${esc(x.name)}<span class="pill s-${x.state}">${STW[x.state]}</span></span>
+      <span class="v num">${n1(x.now,x.dec)} <small>${esc(x.unit)}</small></span><span class="u">${x.kind==="lab"?`First result this year: ${n1(x.usual,x.dec)} · normal ${esc(x.L.ref)}`:`Your usual: ${n1(x.usual,x.dec)}`}</span>
+      ${sparkSVG(x)}<span class="what">${esc(WHAT[x.key]||"")}</span></div>`).join("")}
+      ${k==="cycle"&&P.cycles?`<div class="tile"><span class="n">Cycle length<span class="pill s-${st}">${STW[st]}</span></span><span class="v num">${P.cycles.mean} <small>days on average</small></span><span class="u">${P.cycles.long} of ${P.cycles.n} cycles were longer than 35 days · common range 21–35</span><span class="what">A cycle runs from the first day of one period to the next. Cycles that are often longer than 35 days are worth mentioning to your doctor.</span></div>`:""}
+    </div>
+    ${sym.length?`<p class="small" style="margin-top:12px">You reported: ${sym.map(([n,c])=>`${esc(n.toLowerCase())} ${c} time${c>1?"s":""}`).join(", ")} this year.</p>`:""}</section>
+    ${meds.length?`<section class="card"><h2>Medicines for this</h2><ul class="meds">${meds.map(medHTML).join("")}</ul></section>`:""}
+  </div><div class="col"><section class="card"><h2>Questions to ask your doctor</h2><ul class="qs">${A.qs.map((q,i)=>`<li><label for="aq${i}"><input type="checkbox" id="aq${i}" data-q="${esc(q)}" ${picked.includes(q)?"checked":""}><span>${esc(q)}</span></label></li>`).join("")}</ul>
+    <button type="button" class="btn primary" style="margin-top:14px" data-askabout="${k}">Ask VitaLens about this</button></section>
+    <p class="disc">The shaded band on each chart is your usual range (or the normal range for lab tests). Orange dots are outside it.</p></div></div>`;
+}
+
+/* ---------- AI: explain + ask (local API with a key, else Claude on the published link, else rule-based) ---------- */
+const AILANG={en:["English","This is not a diagnosis. Please talk to your doctor about these results."],hi:["Hindi","यह कोई निदान नहीं है। कृपया इन परिणामों के बारे में अपने डॉक्टर से बात करें।"],gu:["Gujarati","આ કોઈ નિદાન નથી. કૃપા કરીને આ પરિણામો વિશે તમારા ડૉક્ટર સાથે વાત કરો."],es:["Spanish","Esto no es un diagnóstico. Hable con su médico sobre estos resultados."],fr:["French","Ceci n'est pas un diagnostic. Parlez de ces résultats avec votre médecin."]};
+const BANNED=[/\byou (?:have|has|are suffering from|suffer from|'ve got|have got|now have|likely have|may have|might have|probably have)\s+(?:type\s*\d\s+)?(?:diabetes|prediabetes|pre-diabetes|hypertension|high blood pressure|pcos|polycystic|heart disease|kidney disease|liver disease|hypothyroidism|thyroid disease)/,/\byou are (?:diabetic|prediabetic|hypertensive)\b/,/\b(?:diagnosed|diagnose you|we diagnose|this confirms|confirms that you)\b/,/\b(?:stop|start|increase|decrease|double|skip|change) (?:taking |your )?(?:metformin|amlodipine|atorvastatin|levothyroxine|medicine|medication|dose|tablets?|pills?)\b/,/आपको (?:मधुमेह|डायबिटीज़|डायबिटीज|हाई ब्लड प्रेशर|पीसीओएस) है/,/તમને (?:ડાયાબિટીસ|હાઈ બ્લડ પ્રેશર|પીસીઓએસ) છે/];
+const NUMRE=/(?<![\w.])\d+(?:[.,]\d+)?/g;
+function checks(text,ev,lang){const allowed=new Set();(JSON.stringify(ev).match(NUMRE)||[]).forEach(m=>{const v=parseFloat(m.replace(",","."));[0,1,2].forEach(d=>allowed.add(+v.toFixed(d)))});for(let i=0;i<=12;i++)allowed.add(i);
+  const unknown=[...new Set((text.match(NUMRE)||[]).map(m=>parseFloat(m.replace(",","."))).filter(n=>!allowed.has(n)))];
+  const low=text.toLowerCase(),hits=BANNED.map(r=>(low.match(r)||[])[0]).filter(Boolean),disc=(AILANG[lang]||AILANG.en)[1];
+  return [{name:"Numbers match your data",passed:!unknown.length,detail:unknown.join(", ")},{name:"No diagnosis or medicine advice",passed:!hits.length,detail:hits.join("; ")},{name:"Reminder to see your doctor",passed:text.includes(disc),detail:""}]}
+function explainPrompt(ev,lang,notes,problems){const [name,disc]=AILANG[lang]||AILANG.en;
+  return `You help a patient understand their own health data. Write a short explanation in ${name}, about 120 to 180 words, in very simple words, speaking to the person as "you".\nRules:\n- Use ONLY the facts and numbers in the EVIDENCE below. Do not calculate new numbers. Write numbers with digits 0-9.\n- Do not diagnose. Never say the person has a disease. Do not tell them to start, stop or change any medicine; you may suggest talking to their doctor.\n- Explain medical words using the plain_words in the evidence.\n- Say what improved as well as what got worse. If nothing is flagged, say their readings stayed close to their usual.\n- Write plain paragraphs only: no lists, headings or bold text.\n- End with exactly this sentence: ${disc}\n${problems?"\nYour previous answer was rejected for these reasons; fix them:\n- "+problems.join("\n- ")+"\n":""}${notes.length?"\nThings the person told us about their life (use only if relevant):\n- "+notes.join("\n- ")+"\n":""}\nEVIDENCE (JSON):\n${JSON.stringify(ev)}`}
+function askPrompt(ev,q,lang,notes,problems){const [name,disc]=AILANG[lang]||AILANG.en;
+  return `You are VitaLens, a friendly helper that explains a person's own health data. Answer their question in ${name}, in 2 to 5 short sentences, in very simple words, speaking to them as "you".\nRules:\n- Use ONLY the facts and numbers in the EVIDENCE. If the answer is not in the evidence, say you don't have that information and suggest asking their doctor. Write numbers with digits 0-9 and do not calculate new numbers.\n- Do not diagnose. Never say the person has a disease. Do not tell them to start, stop or change any medicine.\n- You may give general, safe everyday suggestions (sleep, walking, writing down questions for the doctor).\n- Plain sentences only: no lists, headings or bold text.\n- End with exactly this sentence: ${disc}\n${problems?"\nYour previous answer was rejected for these reasons; fix them:\n- "+problems.join("\n- ")+"\n":""}${notes.length?"\nThings the person told us about their life (use only if relevant):\n- "+notes.join("\n- "):""}\n\nEVIDENCE (JSON):\n${JSON.stringify(ev)}\n\nQUESTION: ${q.slice(0,500)}`}
+let API_OK=false;
+let SAMPLE=null;async function getSample(){if(SAMPLE)return SAMPLE;if(!(window.claude&&window.claude.use))return null;try{SAMPLE=await window.claude.use("sample")}catch(e){SAMPLE=null}return SAMPLE}
+async function apiJSON(url,opt){const r=await fetch(url,opt);const j=await r.json().catch(()=>({}));
+  if(!r.ok||j.error){const x=new Error(j.error||j.detail||("HTTP "+r.status));x.code="server";throw x}return j}
+function aiErr(e){const c=e&&e.code;
+  if(c==="server")return String(e.message||"The AI couldn't answer just now.");
+  if(c==="unavailable"&&MODE==="server")return "The AI isn't connected on this computer yet. Set AI_PROVIDER=ollama in the .env file (free) and restart VitaLens.";
+  if(c==="unavailable")return "The AI isn't available in this view. Open the VitaLens link in its own browser tab and try again.";
+  if(c==="not_granted")return "The AI needs your permission. Click again and choose Allow.";
+  if(c==="rate_limited")return "Too many requests right now. Please wait a minute and try again.";
+  return "The AI couldn't answer just now ("+String((e&&(e.code||e.message))||"error").slice(0,80)+"). Please try again."}
+async function viaClaude(build,ev,lang,onProgress){
+  const sample=await getSample();if(!sample){const x=new Error("unavailable");x.code="unavailable";throw x}let problems=null,text="",ck=[];
+  for(let tries=1;tries<=2;tries++){const res=await sample(build(problems),{cache:false,onText:({text:t})=>onProgress&&onProgress(t)});text=res.text||"";ck=checks(text,ev,lang);if(ck.every(c=>c.passed))break;problems=ck.filter(c=>!c.passed).map(c=>`${c.name}: ${c.detail||"missing"}`)}
+  return {text,checks:ck,passed:ck.every(c=>c.passed),src:"Written by AI using only your data · checked before showing"};
+}
+const notesFor=()=>store.get("vl-notes-"+P.id,[]).map(n=>n.t);
+function checksHTML(ck){return (ck||[]).map(c=>`<li class="${c.passed?"ok":"bad"}">${c.passed?"✓":"✗"} ${esc(c.name)}</li>`).join("")}
+async function doExplain(){
+  const lang=$("lang").value,ev=P.ai.evidence,notes=notesFor(),btn=$("explain"),out=$("aiout");btn.disabled=true;out.classList.add("wait");out.textContent="Thinking…";$("aichecks").hidden=true;$("aisrc").textContent="";$("aisrc").classList.remove("aierr");
+  try{let r=null;
+    if(API_OK){const j=await apiJSON(`api/me/explain?lang=${encodeURIComponent(lang)}&notes=${encodeURIComponent(JSON.stringify(notes))}`);r={text:j.text,checks:j.checks,passed:j.passed,sentences:j.sentences,facts:j.facts,src:"Written by AI using only your data · checked before showing"}}
+    if(!r)r=await viaClaude(pr=>explainPrompt(ev,lang,notes,pr),Object.assign({},ev,{patient_notes:notes}),lang,t=>{out.textContent=`Writing… (${t.split(/\s+/).length} words, shown after the safety checks)`});
+    out.classList.remove("wait");
+    if(!r){out.textContent=P.ai.rule_text;$("aisrc").textContent="The AI isn't connected here, so this is the short summary built from your data.";return}
+    if(r.passed&&r.sentences)out.innerHTML=withSources(r);else out.textContent=r.passed?r.text:"This explanation didn't pass the safety checks, so it isn't shown. Please try again.";
+    $("aichecks").hidden=false;$("aichecks").innerHTML=checksHTML(r.checks);$("aisrc").textContent=r.src;
+  }catch(e){out.classList.remove("wait");out.textContent=P.ai.rule_text;$("aisrc").textContent=aiErr(e)+" Meanwhile, this is the short summary built from your data.";$("aisrc").classList.add("aierr")}
+  finally{btn.disabled=false}
+}
+async function doAsk(q){
+  q=String(q||"").trim();if(!q)return;const chat=$("chat"),lang=$("lang").value,ev=P.ai.evidence,notes=notesFor();
+  const me=document.createElement("div");me.className="msg me";me.textContent=q;chat.append(me);
+  const ai=document.createElement("div");ai.className="msg ai wait";ai.textContent="Thinking…";chat.append(ai);chat.scrollTop=chat.scrollHeight;$("askbtn").disabled=true;
+  try{let r=null;
+    if(API_OK){const j=await apiJSON("api/me/ask",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({question:q.slice(0,500),lang,notes})});
+      r={text:j.text,checks:j.checks||[],passed:j.passed,sentences:j.sentences,facts:j.facts}}
+    if(!r)r=await viaClaude(pr=>askPrompt(ev,q,lang,notes,pr),Object.assign({},ev,{patient_notes:notes}),lang,t=>{ai.textContent=`Writing… (${t.split(/\s+/).length} words)`});
+    ai.classList.remove("wait");
+    if(!r){ai.textContent="The AI isn't connected here, so I can't answer questions yet. Set AI_PROVIDER=ollama in the .env file (free) and restart VitaLens. Meanwhile, tap an area of your body to see what changed.";return}
+    ai.innerHTML=`${r.passed&&r.sentences?withSources(r):esc(r.passed?r.text:"I couldn't give a safe answer to that, so it isn't shown. Try asking another way, or ask your doctor.")}<ul class="checks">${checksHTML(r.checks)}</ul>`;
+  }catch(e){ai.classList.remove("wait");ai.textContent=aiErr(e)}
+  finally{$("askbtn").disabled=false;chat.scrollTop=chat.scrollHeight}
+}
+
+/* ---------- doctor summary ---------- */
+function summaryText(){
+  const L=[`VitaLens summary · ${P.id} · ${P.age}, ${P.sex} · Sep 2025 to Aug 2026`,"Compared with my own usual (first three months).",""];
+  ORDER.forEach(k=>{const st=areaStatus(k);if(!st||st==="nodata")return;const f=findings(k).filter(x=>x.state!=="steady");
+    L.push(`${AREAS[k].name}: ${STW[st]}`);f.forEach(x=>L.push("  - "+sentence(x)));if(k==="cycle"&&P.cycles)L.push("  - "+areaLine(k))});
+  const meds=dedupeMeds();if(meds.length){L.push("","Medicines:");meds.forEach(m=>{const a=P.adherence.find(x=>x.medication===m.medication);L.push(`  - ${m.medication} ${m.dose||""}, started ${fmtM(m.start)}${a&&a.mean!=null?`, taken on about ${Math.round(a.mean)}% of days`:""}`)})}
+  const notes=store.get("vl-notes-"+P.id,[]);if(notes.length){L.push("","What's been happening:");notes.forEach(n=>L.push("  - "+n.t))}
+  const qs=store.get("vl-q-"+P.id,[]);if(qs.length){L.push("","My questions:");qs.forEach(q=>L.push("  - "+q))}
+  L.push("","VitaLens describes changes in my data. It is not a diagnosis.");return L.join("\n");
+}
+
+/* ---------- AI answers with sources ---------- */
+let SRCN=0;
+function withSources(r){
+  const order=[],num={};(r.sentences||[]).forEach(s=>s.sources.forEach(id=>{if(!(id in num)){num[id]=order.length+1;order.push(id)}}));
+  const box="s"+(++SRCN),fx=Object.fromEntries((r.facts||[]).map(f=>[f.id,f]));
+  const body=(r.sentences||[]).map(s=>esc(s.text)+s.sources.map(id=>`<button type="button" class="sup" data-src="${box}-${num[id]}" title="${esc((fx[id]||{}).text||"")}">${num[id]}</button>`).join("")).join(" ");
+  return `<p>${body}</p>${order.length?`<div class="facts-t">From your data</div><ol class="facts" id="${box}">${order.map(id=>`<li data-n="${num[id]}">${esc((fx[id]||{}).text||id)}</li>`).join("")}</ol>`:""}`;
+}
+
+/* ---------- your data, your control: share links + access log ---------- */
+const whenS=s=>s?new Date(s).toLocaleString([], {dateStyle:"medium",timeStyle:"short"}):"";
+const LOGIC={"Signed in":"🔑","Shared your record":"🔗","Viewed your record":"👩‍⚕️","Stopped sharing":"⛔","Opened your emergency card":"🚑","Updated emergency contact":"✏️","Replaced emergency link":"♻️","Uploaded a document":"📄","Opened a document":"👩‍⚕️","Deleted a document":"🗑️","Asked to view your record":"🙋","Approved access":"✅","Denied access":"🚫","Link locked":"🔒","Changed an access code":"🔑","Entered a wrong code":"⚠️"};
+async function afterHome(){if(tab==="share"){loadShares();loadLog();loadRequests();if(!REQT)REQT=setInterval(()=>{if($("reqs")){loadRequests()}else{clearInterval(REQT);REQT=null}},4000)}if(tab==="meds")loadDoses();if(tab==="docs")loadDocs()}
+
+/* ---------- medical documents ---------- */
+const kb=n=>n>=1048576?(n/1048576).toFixed(1)+" MB":Math.max(1,Math.round(n/1024))+" KB";
+async function loadDocs(){const el=$("docs");if(!el)return;
+  try{const j=await apiJSON("api/me/documents");
+    el.innerHTML=j.documents.map(d=>`<li><span class="dico ${d.mime==="application/pdf"?"pdf":"img"}" aria-hidden="true">${d.mime==="application/pdf"?"PDF":"IMG"}</span>
+      <span class="dmain"><b>${esc(d.title)}</b><span class="small muted">${esc(d.kind)} · ${esc(d.doc_date||d.uploaded.slice(0,10))} · ${kb(d.size)}</span></span>
+      <span class="acts"><a class="btn sm" href="api/me/documents/${encodeURIComponent(d.id)}" target="_blank" rel="noopener">Open</a><a class="btn sm" href="api/me/documents/${encodeURIComponent(d.id)}?download=1">Download</a><button type="button" class="btn sm danger" data-deldoc="${esc(d.id)}" data-name="${esc(d.title)}">Delete</button></span></li>`).join("")||`<li class="empty muted">No documents yet. Upload your first lab report or prescription above.</li>`}
+  catch(e){el.innerHTML=`<li class="small muted">${esc(aiErr(e))}</li>`}}
+function pickedFile(f){const m=$("dropmsg");if(!m)return;m.innerHTML=f?`<b>${esc(f.name)}</b><br><span class="small muted">${kb(f.size)} · ready to upload</span>`:`<b>Choose a file</b> or drag it here<br><span class="small muted">PDF, JPG, PNG or WebP · up to 10 MB</span>`;
+  if(f&&!$("doctitle").value)$("doctitle").value=f.name.replace(/\.[^.]+$/,"")}
+async function loadShares(){try{const l=await apiJSON("api/me/shares");const el=$("links");if(!el)return;
+  el.innerHTML=l.filter(s=>s.active).map(s=>`<li><div class="row"><span><b>${esc(s.label)}</b> ${s.approval?`<span class="pill s-better" title="You approve each viewer">Approval on</span>`:""}<br><span class="small muted">Until ${esc(whenS(s.expires))} · opened ${s.views} time${s.views===1?"":"s"}</span></span>
+    <span class="acts"><button type="button" class="btn sm" data-qr="${esc(s.token)}">QR</button><button type="button" class="btn sm" data-copy="${esc(s.url)}">Copy link</button><button type="button" class="btn sm" data-newcode="${esc(s.token)}">New code</button><button type="button" class="btn sm danger" data-stop="${esc(s.token)}">Stop sharing</button></span></div>
+    <div class="codeline" id="code-${esc(s.token)}" hidden></div>
+    <div class="qrbox" id="qr-${esc(s.token)}" hidden><img alt="QR code for this link" src="api/me/shares/${esc(s.token)}/qr.svg"><div class="small" style="flex:1;min-width:180px">Your doctor scans this, or opens:<div class="urlbox">${esc(s.url)}</div></div></div></li>`).join("")||`<li class="small muted">No active links. Your record is private.</li>`}catch(e){}}
+function codeHTML(code,label){return `<div class="codebox"><div><span class="small muted">Access code${label?` for ${esc(label)}`:""}</span><b class="code num">${esc(code.slice(0,3))} ${esc(code.slice(3))}</b></div>
+  <p class="small">Tell your doctor this code <b>separately</b>: say it, or text it. Don't send it with the link. It's shown only now; you can make a new one any time.</p>
+  <button type="button" class="btn sm" data-copy="${esc(code)}">Copy code</button></div>`}
+let REQT=null;
+async function loadRequests(){const el=$("reqs");if(!el){clearInterval(REQT);REQT=null;return}
+  try{const l=await apiJSON("api/me/requests");
+    el.innerHTML=l.map(r=>`<div class="reqbox" role="alert"><div><b>${esc(r.viewer)}</b> (${esc(r.role)}) wants to see your record<br><span class="small muted">Using your link "${esc(r.label)}" · ${esc(whenS(r.created))}. They entered the right access code.</span></div>
+      <div class="acts"><button type="button" class="btn sm primary" data-approve="${esc(r.id)}">Approve</button><button type="button" class="btn sm danger" data-deny="${esc(r.id)}">Deny</button></div></div>`).join("")}catch(e){}}
+async function loadLog(){try{const j=await apiJSON("api/me/log");const el=$("log");if(!el)return;
+  $("chain").innerHTML=j.verify.ok?`<span class="chain ok" title="Each entry contains the fingerprint of the one before it. Editing or deleting any entry breaks the chain.">✓ Tamper-proof · ${j.verify.entries} entries</span>`:`<span class="chain bad">⚠ Log was altered at entry ${j.verify.broken_at}</span>`;
+  el.innerHTML=j.entries.map(e=>`<li><span class="ic" aria-hidden="true">${LOGIC[e.action]||"•"}</span><span><b>${esc(e.actor)}</b> · ${esc(e.action.toLowerCase())}${e.detail?` <span class="muted">(${esc(e.detail)})</span>`:""}<br><span class="small muted">${esc(whenS(e.ts))}</span> <span class="h" title="Fingerprint of this entry">#${esc(e.hash.slice(0,10))}</span></span></li>`).join("")||`<li class="small muted">Nothing yet.</li>`}catch(e){}}
+
+/* ---------- emergency travel card ---------- */
+let EM=null;
+function modal(title,html){let d=$("modal");if(!d){d=document.createElement("dialog");d.id="modal";document.body.append(d);const st=document.createElement("style");st.textContent=VLCard.CSS;document.head.append(st)}
+  d.innerHTML=`<div class="mhead"><h2>${esc(title)}</h2><button type="button" class="btn sm" id="closemodal">Close</button></div><div class="mbody">${html}</div>`;if(!d.open)d.showModal()}
+async function openEmergency(){try{EM=await apiJSON("api/me/emergency")}catch(e){alertBox(aiErr(e));return}showEmergency()}
+function showEmergency(){const c=EM.card,l=EM.link,lang=store.get("vl-cardlang",$("lang").value);
+  modal("Emergency travel card",`<label class="small">Card language <select id="cardlang" class="sel">${[["en","English"],["hi","हिन्दी"],["gu","ગુજરાતી"],["es","Español"],["fr","Français"]].map(([v,n])=>`<option value="${v}" ${v===lang?"selected":""}>${n}</option>`).join("")}</select></label>
+    <div id="ecwrap">${VLCard.render(c,lang,lang==="en"?null:"en")}</div>
+    <div class="qrbox"><img alt="QR code for your emergency card" src="api/me/shares/${esc(l.token)}/qr.svg"><div class="small" style="flex:1;min-width:200px"><b>Save this QR as your phone's lock-screen</b> or print it for your wallet. Anyone who scans it sees only this card.<div class="urlbox" style="margin-top:6px">${esc(l.url)}</div><div class="bar" style="margin-top:8px"><button type="button" class="btn sm" data-copy="${esc(l.url)}">Copy link</button><button type="button" class="btn sm danger" id="renewemerg">Replace QR (old one stops working)</button></div></div></div>
+    <form class="cform" id="contactform"><b>Emergency contact</b><input id="cname" maxlength="80" placeholder="Name, e.g. Asha Patel (wife)" value="${esc(c.contact_name)}"><input id="cphone" maxlength="40" placeholder="Phone, e.g. +1 416 555 0100" value="${esc(c.contact_phone)}"><input id="cnote" maxlength="200" placeholder="Anything else, e.g. 'Speaks Gujarati and English'" value="${esc(c.note)}"><button class="btn primary" type="submit">Save</button><span class="small muted" id="cmsg"></span></form>`)}
+function alertBox(t){modal("VitaLens",`<p>${esc(t)}</p>`)}
+
+/* ---------- medicine check-in ---------- */
+const dayStr=d=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
+const lastDays=n=>Array.from({length:n},(_,i)=>{const d=new Date();d.setDate(d.getDate()-(n-1-i));return dayStr(d)});
+async function loadDoses(){const el=$("doses");if(!el)return;const days=lastDays(14),today=days.at(-1);
+  try{const j=await apiJSON(`api/me/doses?since=${days[0]}`);const st={};j.log.forEach(x=>{st[x.med+"|"+x.day]=x.status});
+    el.innerHTML=j.meds.map(m=>{const t=days.filter(d=>st[m.name+"|"+d]==="taken").length,logged=days.filter(d=>st[m.name+"|"+d]).length,s=st[m.name+"|"+today];
+      return `<li><b>${esc(m.name)}</b> <span class="small muted">${esc(m.dose||"")} · ${esc(m.frequency||"")}</span>
+        <div class="dosebtns"><button type="button" class="btn sm take" aria-pressed="${s==="taken"}" data-dose="${esc(m.name)}" data-st="taken">✓ Taken</button><button type="button" class="btn sm miss" aria-pressed="${s==="missed"}" data-dose="${esc(m.name)}" data-st="missed">Missed</button></div>
+        <div class="strip" aria-label="Last 14 days">${days.map(d=>`<i class="${st[m.name+"|"+d]==="taken"?"t":st[m.name+"|"+d]==="missed"?"m":""} ${d===today?"today":""}" title="${d}: ${st[m.name+"|"+d]||"not logged"}"></i>`).join("")}</div>
+        <div class="small muted" style="margin-top:4px">${logged?`Taken on ${t} of the ${logged} day${logged>1?"s":""} you logged in the last 2 weeks.`:"Nothing logged yet. Start today."}</div></li>`}).join("")||`<li class="small muted">No current medicines.</li>`}catch(e){el.innerHTML=`<li class="small muted">${esc(aiErr(e))}</li>`}}
+
+/* ---------- events ---------- */
+document.addEventListener("click",e=>{
+  const b=e.target.closest("button,[data-area],[data-scen]");if(!b)return;
+  if(b.id==="signout"){signOut();return}
+  if(b.dataset.src){const [box,n]=b.dataset.src.split("-");const ol=$(box);if(ol){ol.querySelectorAll("li").forEach(li=>li.classList.toggle("hl",li.dataset.n===n));}return}
+  if(b.dataset.qr){const q=$("qr-"+b.dataset.qr);if(q)q.hidden=!q.hidden;return}
+  if(b.dataset.copy){navigator.clipboard&&navigator.clipboard.writeText(b.dataset.copy).then(()=>{const o=b.textContent;b.textContent="Copied ✓";setTimeout(()=>b.textContent=o,1500)},()=>{});return}
+  if(b.dataset.approve||b.dataset.deny){const id=b.dataset.approve||b.dataset.deny;apiJSON("api/me/requests/"+encodeURIComponent(id),{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({approve:!!b.dataset.approve})}).then(()=>{loadRequests();loadShares();loadLog()}).catch(e=>alertBox(aiErr(e)));return}
+  if(b.dataset.newcode){const t=b.dataset.newcode;apiJSON(`api/me/shares/${encodeURIComponent(t)}/code`,{method:"POST"}).then(j=>{const el=$("code-"+t);if(el){el.hidden=false;el.innerHTML=codeHTML(j.code)}loadLog()}).catch(e=>alertBox(aiErr(e)));return}
+  if(b.dataset.stop){apiJSON("api/me/shares/"+encodeURIComponent(b.dataset.stop),{method:"DELETE"}).then(()=>{loadShares();loadLog()}).catch(e=>alertBox(aiErr(e)));return}
+  if(b.id==="openemerg"){openEmergency();return}
+  if(b.id==="closemodal"){$("modal").close();loadLog();return}
+  if(b.id==="renewemerg"){apiJSON("api/me/emergency/renew",{method:"POST"}).then(j=>{EM.link=j.link;showEmergency();loadLog()}).catch(e=>alertBox(aiErr(e)));return}
+  if(b.dataset.dose){const on=b.getAttribute("aria-pressed")==="true";apiJSON("api/me/doses",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({med:b.dataset.dose,day:dayStr(new Date()),status:on?null:b.dataset.st})}).then(loadDoses).catch(e=>alertBox(aiErr(e)));return}
+  if(b.dataset.tab){tab=b.dataset.tab;store.set("vl-tab",tab);view="home";render();return}
+  if(b.dataset.scen){scenKey=b.dataset.scen;view="scenario";render();return}
+  if(b.dataset.askscen){const k=b.dataset.askscen;tab="ai";store.set("vl-tab",tab);view="home";render();requestAnimationFrame(()=>doAsk(`How is my ${SC[k].name==="PCOS"?"PCOS":SC[k].name.toLowerCase()} health check going, and what does it mean?`));return}
+  if(b.dataset.deldoc){if(!confirmDel(b))return;apiJSON("api/me/documents/"+encodeURIComponent(b.dataset.deldoc),{method:"DELETE"}).then(loadDocs).catch(e=>alertBox(aiErr(e)));return}
+  if(b.dataset.area){areaKey=b.dataset.area;view="area";render();return}
+  if(b.id==="home"){view="home";render();return}
+  if(b.id==="explain"){doExplain();return}
+  if(b.dataset.ask){doAsk(b.dataset.ask);return}
+  if(b.dataset.askabout){const k=b.dataset.askabout;tab="ai";store.set("vl-tab",tab);view="home";render();requestAnimationFrame(()=>{doAsk(`What changed in my ${AREAS[k].name.toLowerCase()} and what does it mean?`)});return}
+  if(b.dataset.note){const n=store.get("vl-notes-"+P.id,[]),i=n.findIndex(x=>x.t===b.dataset.note);if(i>=0)n.splice(i,1);else n.push({t:b.dataset.note,d:new Date().toISOString().slice(0,10)});store.set("vl-notes-"+P.id,n);b.setAttribute("aria-pressed",String(i<0));$("notes").innerHTML=notesHTML(n);return}
+  if(b.dataset.delnote!=null){const n=store.get("vl-notes-"+P.id,[]);const gone=n.splice(+b.dataset.delnote,1)[0];store.set("vl-notes-"+P.id,n);$("notes").innerHTML=notesHTML(n);document.querySelectorAll("[data-note]").forEach(c=>{if(gone&&c.dataset.note===gone.t)c.setAttribute("aria-pressed","false")});return}
+  if(b.id==="copysum"){const t=summaryText(),pre=$("summary");pre.hidden=false;pre.textContent=t;
+    const ok=()=>{$("copymsg").textContent="Copied. Paste it into a note or message."};
+    const no=()=>{try{const r=document.createRange();r.selectNodeContents(pre);const s=getSelection();s.removeAllRanges();s.addRange(r)}catch(_){}$("copymsg").textContent="Selected. Press Ctrl+C to copy."};
+    try{navigator.clipboard.writeText(t).then(ok,no)}catch(err){no()}return}
+});
+document.addEventListener("keydown",e=>{const g=e.target.closest&&e.target.closest("[data-area],[data-scen]");if(g&&g.tagName!=="BUTTON"&&(e.key==="Enter"||e.key===" ")){e.preventDefault();if(g.dataset.scen){scenKey=g.dataset.scen;view="scenario"}else{areaKey=g.dataset.area;view="area"}render()}});
+/* delete needs a second tap, so nothing is lost by accident (no browser pop-ups) */
+function confirmDel(b){if(b.dataset.armed){return true}b.dataset.armed="1";const o=b.textContent;b.textContent="Tap again to delete";setTimeout(()=>{if(b.isConnected){delete b.dataset.armed;b.textContent=o}},3000);return false}
+document.addEventListener("dragover",e=>{const d=e.target.closest&&e.target.closest("#drop");if(d){e.preventDefault();d.classList.add("over")}});
+document.addEventListener("dragleave",e=>{const d=e.target.closest&&e.target.closest("#drop");if(d)d.classList.remove("over")});
+document.addEventListener("drop",e=>{const d=e.target.closest&&e.target.closest("#drop");if(!d)return;e.preventDefault();d.classList.remove("over");const f=e.dataTransfer.files[0];if(f){const dt=new DataTransfer();dt.items.add(f);$("docfile").files=dt.files;pickedFile(f)}});
+document.addEventListener("submit",async e=>{e.preventDefault();
+  if(e.target.id==="loginform"){const btn=$("lbtn");btn.disabled=true;$("lerr").textContent="";
+    try{const err=await signIn($("lid").value,$("lpw").value);if(err){$("lerr").textContent=err;btn.disabled=false}}catch(x){$("lerr").textContent="Could not sign in. Check your connection.";btn.disabled=false}return}
+  if(e.target.id==="docform"){const f=$("docfile").files[0],msg=$("docmsg");if(!f){msg.textContent="Choose a file first.";return}
+    if(f.size>10*1024*1024){msg.textContent="That file is larger than 10 MB.";return}
+    const fd=new FormData();fd.append("file",f);fd.append("title",$("doctitle").value);fd.append("kind",$("dockind").value);fd.append("doc_date",$("docdate").value);
+    $("docbtn").disabled=true;msg.textContent="Uploading…";
+    try{await apiJSON("api/me/documents",{method:"POST",body:fd});msg.textContent="Uploaded ✓";e.target.reset();pickedFile(null);loadDocs()}catch(x){msg.textContent=aiErr(x)}finally{$("docbtn").disabled=false}return}
+  if(e.target.id==="shareform"){const label=$("shlabel").value.trim()||"My doctor",hours=+$("shhours").value;
+    try{const s=await apiJSON("api/me/shares",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({label,hours,approval:$("shapprove").checked})});$("shlabel").value="";
+      $("newshare").innerHTML=`<div class="newshare"><b>Link ready for ${esc(s.label)}.</b> Send the link, then give the code separately.${s.approval?" When they open it, you'll be asked to approve them here.":""}<div class="urlbox" style="margin:8px 0">${esc(s.url)}</div><button type="button" class="btn sm" data-copy="${esc(s.url)}">Copy link</button>${codeHTML(s.code)}</div>`;
+      await loadShares();loadLog();const q=$("qr-"+s.token);if(q)q.hidden=false}catch(x){alertBox(aiErr(x))}return}
+  if(e.target.id==="contactform"){try{await apiJSON("api/me/profile",{method:"PUT",headers:{"content-type":"application/json"},body:JSON.stringify({contact_name:$("cname").value,contact_phone:$("cphone").value,note:$("cnote").value})});
+    EM.card.contact_name=$("cname").value;EM.card.contact_phone=$("cphone").value;EM.card.note=$("cnote").value;const l=$("cardlang").value;$("ecwrap").innerHTML=VLCard.render(EM.card,l,l==="en"?null:"en");$("cmsg").textContent="Saved ✓"}catch(x){$("cmsg").textContent=aiErr(x)}return}
+  if(e.target.id==="askform"){const q=$("askq").value;$("askq").value="";doAsk(q)}
+  if(e.target.id==="noteform"){const v=$("notein").value.trim();if(!v)return;const n=store.get("vl-notes-"+P.id,[]);n.push({t:v.slice(0,200),d:new Date().toISOString().slice(0,10)});store.set("vl-notes-"+P.id,n);$("notein").value="";$("notes").innerHTML=notesHTML(n)}});
+document.addEventListener("change",e=>{if(e.target.dataset&&e.target.dataset.q!=null&&P){const q=e.target.dataset.q,s=store.get("vl-q-"+P.id,[]);const i=s.indexOf(q);if(e.target.checked&&i<0)s.push(q);if(!e.target.checked&&i>=0)s.splice(i,1);store.set("vl-q-"+P.id,s)}
+  if(e.target.id==="lang")store.set("vl-lang",e.target.value);
+  if(e.target.id==="cardlang"&&EM){const l=e.target.value;store.set("vl-cardlang",l);$("ecwrap").innerHTML=VLCard.render(EM.card,l,l==="en"?null:"en")}
+  if(e.target.id==="docfile")pickedFile(e.target.files[0]);
+  if(e.target.id==="remtime"){store.set("vl-remtime",e.target.value);$("remlink").href="api/me/reminder.ics?time="+encodeURIComponent(e.target.value)}
+  if(e.target.id==="showpw")$("lpw").type=e.target.checked?"text":"password"});
+$("lang").value=store.get("vl-lang","en");
+boot();
+})();
+</script>
+
+</body>
+</html>
